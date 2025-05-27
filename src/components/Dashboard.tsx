@@ -8,8 +8,14 @@ import { Plus, Users, LogOut, Copy, DollarSign, Calendar } from "lucide-react";
 import CreateGroupModal from "@/components/CreateGroupModal";
 import JoinGroupModal from "@/components/JoinGroupModal";
 import { useToast } from "@/hooks/use-toast";
+import { User } from '@supabase/supabase-js';
 
-const Dashboard = ({ user, onLogout }) => {
+interface DashboardProps {
+  user: User;
+  onLogout: () => void;
+}
+
+const Dashboard = ({ user, onLogout }: DashboardProps) => {
   const [groups, setGroups] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -36,7 +42,7 @@ const Dashboard = ({ user, onLogout }) => {
       members: [
         {
           id: user.id,
-          name: user.name,
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
           email: user.email,
           status: 'active',
           paidThisMonth: false
@@ -83,7 +89,7 @@ const Dashboard = ({ user, onLogout }) => {
           ...g,
           members: [...g.members, {
             id: user.id,
-            name: user.name,
+            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
             email: user.email,
             status: 'active',
             paidThisMonth: false
@@ -118,6 +124,8 @@ const Dashboard = ({ user, onLogout }) => {
     return (group.monthlyCost / group.members.length).toFixed(2);
   };
 
+  const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Navigation */}
@@ -130,7 +138,7 @@ const Dashboard = ({ user, onLogout }) => {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome, {user.name}</span>
+              <span className="text-sm text-gray-600">Welcome, {displayName}</span>
               <Button 
                 variant="ghost" 
                 onClick={onLogout}

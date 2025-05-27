@@ -8,8 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-const AuthModal = ({ isOpen, onClose, onLogin }) => {
+const AuthModal = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -29,23 +30,56 @@ const AuthModal = ({ isOpen, onClose, onLogin }) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate login process
-    setTimeout(() => {
-      const userData = {
-        id: Date.now(),
-        name: loginData.email.split('@')[0],
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: loginData.email,
-        joinedGroups: [],
-        createdGroups: []
-      };
-      
-      onLogin(userData);
-      toast({
-        title: "Welcome back!",
-        description: "You've been successfully logged in.",
+        password: loginData.password,
       });
+
+      if (error) {
+        if (error.message.includes('Email not confirmed')) {
+          toast({
+            title: "Email not verified",
+            description: "Please check your email and click the verification link before signing in.",
+            variant: "destructive"
+          });
+        } else if (error.message.includes('Invalid login credentials')) {
+          toast({
+            title: "Invalid credentials",
+            description: "Please check your email and password and try again.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
+      } else {
+        if (data.user?.email_confirmed_at) {
+          onClose();
+          toast({
+            title: "Welcome back!",
+            description: "You've been successfully logged in.",
+          });
+        } else {
+          toast({
+            title: "Please verify your email",
+            description: "Check your email and click the verification link to complete registration.",
+            variant: "destructive"
+          });
+        }
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleSignup = async (e) => {
@@ -60,25 +94,64 @@ const AuthModal = ({ isOpen, onClose, onLogin }) => {
       return;
     }
 
+    if (signupData.password.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
 
-    // Simulate signup process
-    setTimeout(() => {
-      const userData = {
-        id: Date.now(),
-        name: signupData.name,
+    try {
+      const { data, error } = await supabase.auth.signUp({
         email: signupData.email,
-        joinedGroups: [],
-        createdGroups: []
-      };
-      
-      onLogin(userData);
-      toast({
-        title: "Account created!",
-        description: "Welcome to PlayForm! Start creating or joining groups.",
+        password: signupData.password,
+        options: {
+          data: {
+            full_name: signupData.name,
+          },
+        },
       });
+
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          toast({
+            title: "Account exists",
+            description: "An account with this email already exists. Please sign in instead.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
+      } else {
+        toast({
+          title: "Check your email!",
+          description: "We've sent you a verification link. Please check your email and click the link to verify your account.",
+        });
+        // Reset form
+        setSignupData({
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: ''
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -197,11 +270,12 @@ const AuthModal = ({ isOpen, onClose, onLogin }) => {
                       <Input
                         id="signup-password"
                         type="password"
-                        placeholder="Create a password"
+                        placeholder="Create a password (min. 6 characters)"
                         className="pl-10"
                         value={signupData.password}
                         onChange={(e) => setSignupData({...signupData, password: e.target.value})}
                         required
+                        minLength={6}
                       />
                     </div>
                   </div>
@@ -218,6 +292,7 @@ const AuthModal = ({ isOpen, onClose, onLogin }) => {
                         value={signupData.confirmPassword}
                         onChange={(e) => setSignupData({...signupData, confirmPassword: e.target.value})}
                         required
+                        minLength={6}
                       />
                     </div>
                   </div>

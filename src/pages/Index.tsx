@@ -1,40 +1,140 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, DollarSign, Shield, Smartphone } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
 import Dashboard from "@/components/Dashboard";
+import { supabase } from "@/integrations/supabase/client";
+import { User, Session } from '@supabase/supabase-js';
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  // Check for existing user session
   useEffect(() => {
-    const userData = localStorage.getItem('playform_user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-      setIsAuthenticated(true);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('Auth state changed:', event, session);
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+
+        if (event === 'SIGNED_IN') {
+          if (session?.user?.email_confirmed_at) {
+            toast({
+              title: "Welcome!",
+              description: "You've been successfully logged in.",
+            });
+          } else {
+            toast({
+              title: "Please verify your email",
+              description: "Check your email and click the verification link to complete registration.",
+              variant: "destructive"
+            });
+          }
+        }
+
+        if (event === 'USER_UPDATED' && session?.user?.email_confirmed_at) {
+          toast({
+            title: "Email verified!",
+            description: "Your email has been verified successfully.",
+          });
+        }
+      }
+    );
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [toast]);
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Signed out",
+        description: "You've been successfully signed out.",
+      });
     }
-  }, []);
-
-  const handleLogin = (userData) => {
-    setUser(userData);
-    setIsAuthenticated(true);
-    setShowAuthModal(false);
-    localStorage.setItem('playform_user', JSON.stringify(userData));
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('playform_user');
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
-  if (isAuthenticated) {
+  // Show dashboard if user is authenticated and email is verified
+  if (user && session && user.email_confirmed_at) {
     return <Dashboard user={user} onLogout={handleLogout} />;
+  }
+
+  // Show email verification message if user is signed in but email not verified
+  if (user && session && !user.email_confirmed_at) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <nav className="bg-white/80 backdrop-blur-sm border-b sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  PlayForm
+                </h1>
+              </div>
+              <Button variant="ghost" onClick={handleLogout}>
+                Sign Out
+              </Button>
+            </div>
+          </div>
+        </nav>
+        
+        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Verify Your Email
+              </CardTitle>
+              <CardDescription>
+                We've sent a verification link to {user.email}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center space-y-4">
+              <p className="text-sm text-gray-600">
+                Please check your email and click the verification link to complete your registration.
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => supabase.auth.resend({ type: 'signup', email: user.email! })}
+                className="w-full"
+              >
+                Resend Verification Email
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -200,7 +300,6 @@ const Index = () => {
       <AuthModal 
         isOpen={showAuthModal} 
         onClose={() => setShowAuthModal(false)}
-        onLogin={handleLogin}
       />
     </div>
   );
