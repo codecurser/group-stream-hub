@@ -18,27 +18,45 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
+interface GroupMember {
+  user_id: string;
+  status: string;
+  profiles?: {
+    full_name: string | null;
+  } | null;
+}
+
+interface Group {
+  id: string;
+  name: string;
+  platform: string;
+  monthly_cost: number;
+  max_members: number;
+  creator_id: string;
+  invite_code: string;
+  description?: string;
+  created_at: string;
+  group_members?: GroupMember[];
+}
+
 const Dashboard = ({ user, onLogout }: DashboardProps) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
-  const [selectedGroupChat, setSelectedGroupChat] = useState(null);
+  const [selectedGroupChat, setSelectedGroupChat] = useState<Group | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch all available groups
   const { data: allGroups = [], isLoading: groupsLoading } = useQuery({
     queryKey: ['groups'],
-    queryFn: async () => {
+    queryFn: async (): Promise<Group[]> => {
       const { data, error } = await supabase
         .from('groups')
         .select(`
           *,
           group_members (
             user_id,
-            status,
-            profiles (
-              full_name
-            )
+            status
           )
         `)
         .order('created_at', { ascending: false });
@@ -63,7 +81,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
   });
 
   const createGroupMutation = useMutation({
-    mutationFn: async (groupData) => {
+    mutationFn: async (groupData: any) => {
       const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       
       const { data: group, error: groupError } = await supabase
@@ -110,7 +128,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
   });
 
   const joinGroupMutation = useMutation({
-    mutationFn: async (inviteCode) => {
+    mutationFn: async (inviteCode: string) => {
       // Find group by invite code
       const { data: group, error: findError } = await supabase
         .from('groups')
@@ -153,7 +171,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
         description: `You've successfully joined "${group.name}".`,
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to join group. Please try again.",
@@ -162,15 +180,15 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
     }
   });
 
-  const handleCreateGroup = (groupData) => {
+  const handleCreateGroup = (groupData: any) => {
     createGroupMutation.mutate(groupData);
   };
 
-  const handleJoinGroup = (inviteCode) => {
+  const handleJoinGroup = (inviteCode: string) => {
     joinGroupMutation.mutate(inviteCode);
   };
 
-  const copyInviteCode = (inviteCode) => {
+  const copyInviteCode = (inviteCode: string) => {
     navigator.clipboard.writeText(inviteCode);
     toast({
       title: "Copied!",
@@ -182,12 +200,94 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
   const userGroups = allGroups.filter(g => userGroupIds.includes(g.id));
   const availableGroups = allGroups.filter(g => !userGroupIds.includes(g.id));
 
-  const calculateMonthlyCost = (group) => {
+  const calculateMonthlyCost = (group: Group) => {
     const memberCount = group.group_members?.length || 1;
     return (group.monthly_cost / memberCount).toFixed(2);
   };
 
   const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+
+  const GroupCard = ({ group, isUserGroup = false }: { group: Group; isUserGroup?: boolean }) => (
+    <Card className="hover:shadow-lg transition-all duration-300 h-full">
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="text-lg">{group.name}</CardTitle>
+            <CardDescription className="flex items-center gap-2 mt-1">
+              <Badge variant="secondary">{group.platform}</Badge>
+            </CardDescription>
+          </div>
+          {group.creator_id === user.id && (
+            <Badge variant="outline" className="text-xs">Owner</Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-gray-500" />
+            <span className="text-sm text-gray-600">
+              {group.group_members?.length || 0} / {group.max_members} members
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-green-600" />
+            <span className="font-semibold text-green-600">
+              ${calculateMonthlyCost(group)}/month
+            </span>
+          </div>
+        </div>
+
+        {group.description && (
+          <p className="text-sm text-gray-600">{group.description}</p>
+        )}
+
+        {isUserGroup && (
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <span>Invite Code:</span>
+            <div className="flex items-center gap-2">
+              <code className="bg-gray-100 px-2 py-1 rounded font-mono">
+                {group.invite_code}
+              </code>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => copyInviteCode(group.invite_code)}
+                className="h-6 w-6 p-0"
+              >
+                <Copy className="w-3 h-3" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div className="pt-2 border-t">
+          {isUserGroup ? (
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-gray-500">Group Chat:</div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedGroupChat(group)}
+                className="text-xs"
+              >
+                <MessageCircle className="w-3 h-3 mr-1" />
+                Open Chat
+              </Button>
+            </div>
+          ) : (
+            <Button
+              onClick={() => handleJoinGroup(group.invite_code)}
+              disabled={joinGroupMutation.isPending}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            >
+              {joinGroupMutation.isPending ? 'Joining...' : 'Join Group'}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -275,80 +375,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {userGroups.map((group) => (
-                  <Card key={group.id} className="hover:shadow-lg transition-all duration-300">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-lg">{group.name}</CardTitle>
-                          <CardDescription className="flex items-center gap-2 mt-1">
-                            <Badge variant="secondary">{group.platform}</Badge>
-                          </CardDescription>
-                        </div>
-                        {group.creator_id === user.id && (
-                          <Badge variant="outline" className="text-xs">Owner</Badge>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">
-                            {group.group_members?.length || 0} / {group.max_members} members
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-green-600" />
-                          <span className="font-semibold text-green-600">
-                            ${calculateMonthlyCost(group)}/month
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>Invite Code:</span>
-                        <div className="flex items-center gap-2">
-                          <code className="bg-gray-100 px-2 py-1 rounded font-mono">
-                            {group.invite_code}
-                          </code>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyInviteCode(group.invite_code)}
-                            className="h-6 w-6 p-0"
-                          >
-                            <Copy className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="pt-2 border-t">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="text-xs text-gray-500">Members:</div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedGroupChat(group)}
-                            className="text-xs p-1 h-6"
-                          >
-                            <MessageCircle className="w-3 h-3 mr-1" />
-                            Chat
-                          </Button>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {group.group_members?.map((member) => (
-                            <Badge 
-                              key={member.user_id} 
-                              variant={member.user_id === user.id ? "default" : "secondary"}
-                              className="text-xs"
-                            >
-                              {member.profiles?.full_name || 'User'} {member.user_id === user.id && "(You)"}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <GroupCard key={group.id} group={group} isUserGroup={true} />
                 ))}
               </div>
             )}
@@ -374,46 +401,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {availableGroups.map((group) => (
-                  <Card key={group.id} className="hover:shadow-lg transition-all duration-300">
-                    <CardHeader>
-                      <div>
-                        <CardTitle className="text-lg">{group.name}</CardTitle>
-                        <CardDescription className="flex items-center gap-2 mt-1">
-                          <Badge variant="secondary">{group.platform}</Badge>
-                        </CardDescription>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">
-                            {group.group_members?.length || 0} / {group.max_members} members
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-green-600" />
-                          <span className="font-semibold text-green-600">
-                            ${calculateMonthlyCost(group)}/month
-                          </span>
-                        </div>
-                      </div>
-
-                      {group.description && (
-                        <p className="text-sm text-gray-600">{group.description}</p>
-                      )}
-
-                      <div className="pt-2 border-t">
-                        <Button
-                          onClick={() => handleJoinGroup(group.invite_code)}
-                          disabled={joinGroupMutation.isPending}
-                          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                        >
-                          {joinGroupMutation.isPending ? 'Joining...' : 'Join Group'}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <GroupCard key={group.id} group={group} isUserGroup={false} />
                 ))}
               </div>
             )}
