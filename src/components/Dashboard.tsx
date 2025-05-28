@@ -4,11 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, LogOut, Copy, DollarSign, Calendar } from "lucide-react";
+import { Plus, Users, LogOut, Copy, DollarSign, Calendar, MessageCircle } from "lucide-react";
 import CreateGroupModal from "@/components/CreateGroupModal";
 import JoinGroupModal from "@/components/JoinGroupModal";
+import GroupChatModal from "@/components/GroupChatModal";
 import { useToast } from "@/hooks/use-toast";
 import { User } from '@supabase/supabase-js';
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface DashboardProps {
   user: User;
@@ -16,96 +19,155 @@ interface DashboardProps {
 }
 
 const Dashboard = ({ user, onLogout }: DashboardProps) => {
-  const [groups, setGroups] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [selectedGroupChat, setSelectedGroupChat] = useState(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Load groups from localStorage
-  useEffect(() => {
-    const savedGroups = localStorage.getItem('playform_groups');
-    if (savedGroups) {
-      setGroups(JSON.parse(savedGroups));
+  // Fetch all available groups
+  const { data: allGroups = [], isLoading: groupsLoading } = useQuery({
+    queryKey: ['groups'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('groups')
+        .select(`
+          *,
+          group_members (
+            user_id,
+            status,
+            profiles (
+              full_name
+            )
+          )
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
     }
-  }, []);
+  });
 
-  // Save groups to localStorage
-  useEffect(() => {
-    localStorage.setItem('playform_groups', JSON.stringify(groups));
-  }, [groups]);
+  // Fetch user's group memberships
+  const { data: userMemberships = [] } = useQuery({
+    queryKey: ['user-memberships', user.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  const createGroupMutation = useMutation({
+    mutationFn: async (groupData) => {
+      const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      
+      const { data: group, error: groupError } = await supabase
+        .from('groups')
+        .insert({
+          ...groupData,
+          creator_id: user.id,
+          invite_code: inviteCode
+        })
+        .select()
+        .single();
+
+      if (groupError) throw groupError;
+
+      // Add creator as first member
+      const { error: memberError } = await supabase
+        .from('group_members')
+        .insert({
+          group_id: group.id,
+          user_id: user.id,
+          status: 'active'
+        });
+
+      if (memberError) throw memberError;
+      return group;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['user-memberships'] });
+      setShowCreateModal(false);
+      toast({
+        title: "Group created!",
+        description: "Your group has been created successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to create group. Please try again.",
+        variant: "destructive"
+      });
+      console.error('Create group error:', error);
+    }
+  });
+
+  const joinGroupMutation = useMutation({
+    mutationFn: async (inviteCode) => {
+      // Find group by invite code
+      const { data: group, error: findError } = await supabase
+        .from('groups')
+        .select('*')
+        .eq('invite_code', inviteCode.toUpperCase())
+        .single();
+
+      if (findError) throw new Error('Invalid invite code');
+
+      // Check if already a member
+      const { data: existingMember } = await supabase
+        .from('group_members')
+        .select('id')
+        .eq('group_id', group.id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (existingMember) {
+        throw new Error('Already a member of this group');
+      }
+
+      // Join the group
+      const { error: joinError } = await supabase
+        .from('group_members')
+        .insert({
+          group_id: group.id,
+          user_id: user.id,
+          status: 'active'
+        });
+
+      if (joinError) throw joinError;
+      return group;
+    },
+    onSuccess: (group) => {
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      queryClient.invalidateQueries({ queryKey: ['user-memberships'] });
+      setShowJoinModal(false);
+      toast({
+        title: "Joined group!",
+        description: `You've successfully joined "${group.name}".`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to join group. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
 
   const handleCreateGroup = (groupData) => {
-    const newGroup = {
-      id: Date.now(),
-      ...groupData,
-      creator: user.id,
-      members: [
-        {
-          id: user.id,
-          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-          email: user.email,
-          status: 'active',
-          paidThisMonth: false
-        }
-      ],
-      inviteCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
-      createdAt: new Date().toISOString()
-    };
-    
-    setGroups([...groups, newGroup]);
-    setShowCreateModal(false);
-    
-    toast({
-      title: "Group created!",
-      description: `"${groupData.name}" has been created successfully.`,
-    });
+    createGroupMutation.mutate(groupData);
   };
 
   const handleJoinGroup = (inviteCode) => {
-    const group = groups.find(g => g.inviteCode === inviteCode);
-    
-    if (!group) {
-      toast({
-        title: "Invalid invite code",
-        description: "Please check the code and try again.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const isAlreadyMember = group.members.some(m => m.id === user.id);
-    if (isAlreadyMember) {
-      toast({
-        title: "Already a member",
-        description: "You're already part of this group.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const updatedGroups = groups.map(g => {
-      if (g.id === group.id) {
-        return {
-          ...g,
-          members: [...g.members, {
-            id: user.id,
-            name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-            email: user.email,
-            status: 'active',
-            paidThisMonth: false
-          }]
-        };
-      }
-      return g;
-    });
-
-    setGroups(updatedGroups);
-    setShowJoinModal(false);
-    
-    toast({
-      title: "Joined group!",
-      description: `You've successfully joined "${group.name}".`,
-    });
+    joinGroupMutation.mutate(inviteCode);
   };
 
   const copyInviteCode = (inviteCode) => {
@@ -116,12 +178,13 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
     });
   };
 
-  const userGroups = groups.filter(g => 
-    g.members.some(m => m.id === user.id)
-  );
+  const userGroupIds = userMemberships.map(m => m.group_id);
+  const userGroups = allGroups.filter(g => userGroupIds.includes(g.id));
+  const availableGroups = allGroups.filter(g => !userGroupIds.includes(g.id));
 
   const calculateMonthlyCost = (group) => {
-    return (group.monthlyCost / group.members.length).toFixed(2);
+    const memberCount = group.group_members?.length || 1;
+    return (group.monthly_cost / memberCount).toFixed(2);
   };
 
   const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
@@ -156,7 +219,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-          <p className="text-gray-600">Manage your subscription groups and payments</p>
+          <p className="text-gray-600">Manage your subscription groups and discover new ones</p>
         </div>
 
         {/* Quick Actions */}
@@ -186,8 +249,9 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
 
         {/* Groups Section */}
         <Tabs defaultValue="my-groups" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="my-groups">My Groups ({userGroups.length})</TabsTrigger>
+            <TabsTrigger value="available-groups">Available Groups ({availableGroups.length})</TabsTrigger>
             <TabsTrigger value="payments">Payment History</TabsTrigger>
           </TabsList>
           
@@ -220,7 +284,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
                             <Badge variant="secondary">{group.platform}</Badge>
                           </CardDescription>
                         </div>
-                        {group.creator === user.id && (
+                        {group.creator_id === user.id && (
                           <Badge variant="outline" className="text-xs">Owner</Badge>
                         )}
                       </div>
@@ -230,7 +294,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-gray-500" />
                           <span className="text-sm text-gray-600">
-                            {group.members.length} / {group.maxMembers} members
+                            {group.group_members?.length || 0} / {group.max_members} members
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -245,12 +309,12 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
                         <span>Invite Code:</span>
                         <div className="flex items-center gap-2">
                           <code className="bg-gray-100 px-2 py-1 rounded font-mono">
-                            {group.inviteCode}
+                            {group.invite_code}
                           </code>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => copyInviteCode(group.inviteCode)}
+                            onClick={() => copyInviteCode(group.invite_code)}
                             className="h-6 w-6 p-0"
                           >
                             <Copy className="w-3 h-3" />
@@ -259,18 +323,94 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
                       </div>
 
                       <div className="pt-2 border-t">
-                        <div className="text-xs text-gray-500 mb-2">Members:</div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-xs text-gray-500">Members:</div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedGroupChat(group)}
+                            className="text-xs p-1 h-6"
+                          >
+                            <MessageCircle className="w-3 h-3 mr-1" />
+                            Chat
+                          </Button>
+                        </div>
                         <div className="flex flex-wrap gap-1">
-                          {group.members.map((member) => (
+                          {group.group_members?.map((member) => (
                             <Badge 
-                              key={member.id} 
-                              variant={member.id === user.id ? "default" : "secondary"}
+                              key={member.user_id} 
+                              variant={member.user_id === user.id ? "default" : "secondary"}
                               className="text-xs"
                             >
-                              {member.name} {member.id === user.id && "(You)"}
+                              {member.profiles?.full_name || 'User'} {member.user_id === user.id && "(You)"}
                             </Badge>
                           ))}
                         </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="available-groups" className="space-y-6">
+            {groupsLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading groups...</p>
+              </div>
+            ) : availableGroups.length === 0 ? (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No Available Groups</h3>
+                  <p className="text-gray-600 mb-6">Be the first to create a group!</p>
+                  <Button onClick={() => setShowCreateModal(true)}>
+                    Create First Group
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {availableGroups.map((group) => (
+                  <Card key={group.id} className="hover:shadow-lg transition-all duration-300">
+                    <CardHeader>
+                      <div>
+                        <CardTitle className="text-lg">{group.name}</CardTitle>
+                        <CardDescription className="flex items-center gap-2 mt-1">
+                          <Badge variant="secondary">{group.platform}</Badge>
+                        </CardDescription>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm text-gray-600">
+                            {group.group_members?.length || 0} / {group.max_members} members
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4 text-green-600" />
+                          <span className="font-semibold text-green-600">
+                            ${calculateMonthlyCost(group)}/month
+                          </span>
+                        </div>
+                      </div>
+
+                      {group.description && (
+                        <p className="text-sm text-gray-600">{group.description}</p>
+                      )}
+
+                      <div className="pt-2 border-t">
+                        <Button
+                          onClick={() => handleJoinGroup(group.invite_code)}
+                          disabled={joinGroupMutation.isPending}
+                          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        >
+                          {joinGroupMutation.isPending ? 'Joining...' : 'Join Group'}
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -312,6 +452,15 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
         onClose={() => setShowJoinModal(false)}
         onJoinGroup={handleJoinGroup}
       />
+
+      {selectedGroupChat && (
+        <GroupChatModal
+          group={selectedGroupChat}
+          user={user}
+          isOpen={!!selectedGroupChat}
+          onClose={() => setSelectedGroupChat(null)}
+        />
+      )}
     </div>
   );
 };

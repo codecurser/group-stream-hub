@@ -7,10 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { Users, Hash } from "lucide-react";
 
-const JoinGroupModal = ({ isOpen, onClose, onJoinGroup }) => {
+interface JoinGroupModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onJoinGroup: (inviteCode: string) => void;
+}
+
+const JoinGroupModal = ({ isOpen, onClose, onJoinGroup }: JoinGroupModalProps) => {
   const [inviteCode, setInviteCode] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteCode.trim()) return;
     

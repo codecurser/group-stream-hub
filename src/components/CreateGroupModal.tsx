@@ -20,37 +20,41 @@ const platforms = [
   { id: 'other', name: 'Other', color: 'bg-gray-500' }
 ];
 
-const CreateGroupModal = ({ isOpen, onClose, onCreateGroup }) => {
+interface CreateGroupModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreateGroup: (groupData: any) => void;
+}
+
+const CreateGroupModal = ({ isOpen, onClose, onCreateGroup }: CreateGroupModalProps) => {
   const [formData, setFormData] = useState({
     name: '',
     platform: '',
-    monthlyCost: '',
-    maxMembers: '4',
-    description: '',
-    credentials: ''
+    monthly_cost: '',
+    max_members: '4',
+    description: ''
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.platform || !formData.monthlyCost) {
+    if (!formData.name || !formData.platform || !formData.monthly_cost) {
       return;
     }
 
     onCreateGroup({
       ...formData,
-      monthlyCost: parseFloat(formData.monthlyCost),
-      maxMembers: parseInt(formData.maxMembers)
+      monthly_cost: parseFloat(formData.monthly_cost),
+      max_members: parseInt(formData.max_members)
     });
 
     // Reset form
     setFormData({
       name: '',
       platform: '',
-      monthlyCost: '',
-      maxMembers: '4',
-      description: '',
-      credentials: ''
+      monthly_cost: '',
+      max_members: '4',
+      description: ''
     });
   };
 
@@ -83,7 +87,7 @@ const CreateGroupModal = ({ isOpen, onClose, onCreateGroup }) => {
               </SelectTrigger>
               <SelectContent>
                 {platforms.map((platform) => (
-                  <SelectItem key={platform.id} value={platform.id}>
+                  <SelectItem key={platform.id} value={platform.name}>
                     <div className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${platform.color}`}></div>
                       {platform.name}
@@ -102,15 +106,15 @@ const CreateGroupModal = ({ isOpen, onClose, onCreateGroup }) => {
                 type="number"
                 step="0.01"
                 placeholder="15.99"
-                value={formData.monthlyCost}
-                onChange={(e) => setFormData({...formData, monthlyCost: e.target.value})}
+                value={formData.monthly_cost}
+                onChange={(e) => setFormData({...formData, monthly_cost: e.target.value})}
                 required
               />
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="max-members">Max Members</Label>
-              <Select value={formData.maxMembers} onValueChange={(value) => setFormData({...formData, maxMembers: value})}>
+              <Select value={formData.max_members} onValueChange={(value) => setFormData({...formData, max_members: value})}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -139,8 +143,8 @@ const CreateGroupModal = ({ isOpen, onClose, onCreateGroup }) => {
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="p-4">
               <div className="text-sm text-blue-800">
-                <strong>Cost per member:</strong> ${formData.monthlyCost && formData.maxMembers 
-                  ? (parseFloat(formData.monthlyCost) / parseInt(formData.maxMembers)).toFixed(2) 
+                <strong>Cost per member:</strong> ${formData.monthly_cost && formData.max_members 
+                  ? (parseFloat(formData.monthly_cost) / parseInt(formData.max_members)).toFixed(2) 
                   : '0.00'} per month
               </div>
             </CardContent>
