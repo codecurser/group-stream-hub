@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,7 +45,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch all available groups with simplified query
+  // Fetch all available groups
   const { data: allGroups = [], isLoading: groupsLoading } = useQuery({
     queryKey: ['groups'],
     queryFn: async (): Promise<Group[]> => {
@@ -71,7 +70,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
     }
   });
 
-  // Fetch user's group memberships with simplified query
+  // Fetch user's group memberships
   const { data: userMemberships = [] } = useQuery({
     queryKey: ['user-memberships', user.id],
     queryFn: async () => {
@@ -252,6 +251,11 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
   const userGroups = allGroups.filter(g => userGroupIds.includes(g.id));
   const availableGroups = allGroups.filter(g => !userGroupIds.includes(g.id));
 
+  // Debug logging
+  console.log('All groups:', allGroups);
+  console.log('User group IDs:', userGroupIds);
+  console.log('Available groups:', availableGroups);
+
   const calculateMonthlyCost = (group: Group) => {
     const memberCount = Math.max(group.group_members?.length || 1, 1);
     return (group.monthly_cost / memberCount).toFixed(2);
@@ -273,106 +277,116 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
     return colors[platform as keyof typeof colors] || 'bg-gray-500';
   };
 
-  const GroupCard = ({ group, isUserGroup = false }: { group: Group; isUserGroup?: boolean }) => (
-    <Card className="hover:shadow-xl transition-all duration-300 h-full border-0 bg-white/90 backdrop-blur-sm hover:bg-white/95 group">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <div className={`w-3 h-3 rounded-full ${getPlatformColor(group.platform)}`}></div>
-              <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
-                {group.name}
-              </CardTitle>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs font-medium">
-                {group.platform}
-              </Badge>
-              {group.creator_id === user.id && (
-                <Badge variant="outline" className="text-xs flex items-center gap-1">
-                  <Crown className="w-3 h-3" />
-                  Owner
+  const GroupCard = ({ group, isUserGroup = false }: { group: Group; isUserGroup?: boolean }) => {
+    const memberCount = group.group_members?.length || 0;
+    const isGroupFull = memberCount >= group.max_members;
+    
+    return (
+      <Card className="hover:shadow-xl transition-all duration-300 h-full border-2 bg-white shadow-lg hover:shadow-2xl transform hover:-translate-y-1">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`w-4 h-4 rounded-full ${getPlatformColor(group.platform)} shadow-sm`}></div>
+                <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                  {group.name}
+                </CardTitle>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="secondary" className="text-xs font-medium bg-blue-100 text-blue-800">
+                  {group.platform}
                 </Badge>
-              )}
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-blue-500" />
-            <div className="text-sm">
-              <div className="font-medium text-gray-900">{group.group_members?.length || 0}/{group.max_members}</div>
-              <div className="text-xs text-gray-500">members</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-green-500" />
-            <div className="text-sm">
-              <div className="font-bold text-green-600">${calculateMonthlyCost(group)}</div>
-              <div className="text-xs text-gray-500">per month</div>
-            </div>
-          </div>
-        </div>
-
-        {group.description && (
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-sm text-gray-700 leading-relaxed">{group.description}</p>
-          </div>
-        )}
-
-        <div className="text-xs text-gray-500 flex items-center gap-1">
-          <Calendar className="w-3 h-3" />
-          Created {new Date(group.created_at).toLocaleDateString()}
-        </div>
-
-        {isUserGroup && (
-          <div className="bg-blue-50 rounded-lg p-3">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-blue-700 font-medium">Invite Code:</span>
-              <div className="flex items-center gap-2">
-                <code className="bg-white px-2 py-1 rounded font-mono text-blue-800 border">
-                  {group.invite_code}
-                </code>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => copyInviteCode(group.invite_code)}
-                  className="h-6 w-6 p-0 hover:bg-blue-100"
-                >
-                  <Copy className="w-3 h-3" />
-                </Button>
+                {group.creator_id === user.id && (
+                  <Badge variant="outline" className="text-xs flex items-center gap-1 border-yellow-300 text-yellow-700">
+                    <Crown className="w-3 h-3" />
+                    Owner
+                  </Badge>
+                )}
+                {isGroupFull && (
+                  <Badge variant="destructive" className="text-xs">
+                    Full
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
-        )}
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-blue-500" />
+              <div className="text-sm">
+                <div className="font-medium text-gray-900">{memberCount}/{group.max_members}</div>
+                <div className="text-xs text-gray-500">members</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-green-500" />
+              <div className="text-sm">
+                <div className="font-bold text-green-600">${calculateMonthlyCost(group)}</div>
+                <div className="text-xs text-gray-500">per month</div>
+              </div>
+            </div>
+          </div>
 
-        <div className="pt-2 border-t border-gray-100">
-          {isUserGroup ? (
-            <Button
-              variant="outline"
-              onClick={() => setSelectedGroupChat(group)}
-              className="w-full flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors"
-            >
-              <MessageCircle className="w-4 h-4" />
-              Open Chat
-            </Button>
-          ) : (
-            <Button
-              onClick={() => handleJoinGroup(group.invite_code)}
-              disabled={joinGroupMutation.isPending || (group.group_members?.length || 0) >= group.max_members}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 shadow-md hover:shadow-lg transition-all"
-            >
-              {joinGroupMutation.isPending ? 'Joining...' : 
-               (group.group_members?.length || 0) >= group.max_members ? 'Full' : 'Join Group'}
-            </Button>
+          {group.description && (
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-sm text-gray-700 leading-relaxed">{group.description}</p>
+            </div>
           )}
-        </div>
-      </CardContent>
-    </Card>
-  );
+
+          <div className="text-xs text-gray-500 flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            Created {new Date(group.created_at).toLocaleDateString()}
+          </div>
+
+          {isUserGroup && (
+            <div className="bg-blue-50 rounded-lg p-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-blue-700 font-medium">Invite Code:</span>
+                <div className="flex items-center gap-2">
+                  <code className="bg-white px-2 py-1 rounded font-mono text-blue-800 border">
+                    {group.invite_code}
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => copyInviteCode(group.invite_code)}
+                    className="h-6 w-6 p-0 hover:bg-blue-100"
+                  >
+                    <Copy className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="pt-2 border-t border-gray-100">
+            {isUserGroup ? (
+              <Button
+                variant="outline"
+                onClick={() => setSelectedGroupChat(group)}
+                className="w-full flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Open Chat
+              </Button>
+            ) : (
+              <Button
+                onClick={() => handleJoinGroup(group.invite_code)}
+                disabled={joinGroupMutation.isPending || isGroupFull}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {joinGroupMutation.isPending ? 'Joining...' : 
+                 isGroupFull ? 'Group Full' : 'Join Group'}
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -479,19 +493,32 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
           </TabsContent>
 
           <TabsContent value="available-groups" className="space-y-6 mt-8">
+            <div className="mb-6 p-4 bg-white/50 rounded-lg border border-blue-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Browse Available Groups</h3>
+              <p className="text-gray-600">
+                Join existing groups to split subscription costs with other members. 
+                {availableGroups.length > 0 && ` Found ${availableGroups.length} group${availableGroups.length === 1 ? '' : 's'} you can join.`}
+              </p>
+            </div>
+            
             {groupsLoading ? (
               <div className="text-center py-16">
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-6 text-gray-600 text-lg">Loading groups...</p>
+                <p className="mt-6 text-gray-600 text-lg">Loading available groups...</p>
               </div>
             ) : availableGroups.length === 0 ? (
               <Card className="text-center py-16 bg-white/70 backdrop-blur-sm">
                 <CardContent>
                   <MapPin className="w-20 h-20 text-gray-300 mx-auto mb-6" />
                   <h3 className="text-2xl font-bold text-gray-900 mb-4">No Available Groups</h3>
-                  <p className="text-gray-600 mb-8 text-lg">Be the first to create a group that others can join!</p>
+                  <p className="text-gray-600 mb-8 text-lg">
+                    {allGroups.length === 0 
+                      ? "Be the first to create a group that others can join!" 
+                      : "You're already a member of all existing groups. Create a new one!"
+                    }
+                  </p>
                   <Button onClick={() => setShowCreateModal(true)} size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                    Create First Group
+                    Create New Group
                   </Button>
                 </CardContent>
               </Card>
