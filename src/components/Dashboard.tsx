@@ -46,7 +46,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch all available groups
+  // Fetch all available groups with simplified query
   const { data: allGroups = [], isLoading: groupsLoading } = useQuery({
     queryKey: ['groups'],
     queryFn: async (): Promise<Group[]> => {
@@ -71,7 +71,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
     }
   });
 
-  // Fetch user's group memberships
+  // Fetch user's group memberships with simplified query
   const { data: userMemberships = [] } = useQuery({
     queryKey: ['user-memberships', user.id],
     queryFn: async () => {
@@ -79,7 +79,8 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
       const { data, error } = await supabase
         .from('group_members')
         .select('group_id')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('status', 'active');
       
       if (error) {
         console.error('Error fetching memberships:', error);
@@ -92,19 +93,28 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
 
   const createGroupMutation = useMutation({
     mutationFn: async (groupData: any) => {
+      console.log('Creating group with data:', groupData);
       const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       
       const { data: group, error: groupError } = await supabase
         .from('groups')
         .insert({
-          ...groupData,
+          name: groupData.name,
+          platform: groupData.platform,
+          monthly_cost: groupData.monthly_cost,
+          max_members: groupData.max_members,
+          description: groupData.description,
           creator_id: user.id,
           invite_code: inviteCode
         })
         .select()
         .single();
 
-      if (groupError) throw groupError;
+      if (groupError) {
+        console.error('Group creation error:', groupError);
+        throw groupError;
+      }
+      console.log('Group created:', group);
 
       // Add creator as first member
       const { error: memberError } = await supabase
@@ -115,30 +125,38 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
           status: 'active'
         });
 
-      if (memberError) throw memberError;
+      if (memberError) {
+        console.error('Member addition error:', memberError);
+        throw memberError;
+      }
+      console.log('Creator added as member');
+      
       return group;
     },
-    onSuccess: () => {
+    onSuccess: (group) => {
+      console.log('Group creation successful:', group);
       queryClient.invalidateQueries({ queryKey: ['groups'] });
       queryClient.invalidateQueries({ queryKey: ['user-memberships'] });
       setShowCreateModal(false);
       toast({
         title: "Group created!",
-        description: "Your group has been created successfully.",
+        description: `Your group "${group.name}" has been created successfully.`,
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Create group mutation error:', error);
       toast({
         title: "Error",
-        description: "Failed to create group. Please try again.",
+        description: error.message || "Failed to create group. Please try again.",
         variant: "destructive"
       });
-      console.error('Create group error:', error);
     }
   });
 
   const joinGroupMutation = useMutation({
     mutationFn: async (inviteCode: string) => {
+      console.log('Joining group with invite code:', inviteCode);
+      
       // Find group by invite code
       const { data: group, error: findError } = await supabase
         .from('groups')
@@ -146,7 +164,11 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
         .eq('invite_code', inviteCode.toUpperCase())
         .single();
 
-      if (findError) throw new Error('Invalid invite code');
+      if (findError || !group) {
+        console.error('Group not found:', findError);
+        throw new Error('Invalid invite code');
+      }
+      console.log('Found group:', group);
 
       // Check if already a member
       const { data: existingMember } = await supabase
@@ -154,10 +176,22 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
         .select('id')
         .eq('group_id', group.id)
         .eq('user_id', user.id)
+        .eq('status', 'active')
         .single();
 
       if (existingMember) {
         throw new Error('Already a member of this group');
+      }
+
+      // Check if group is full
+      const { data: memberCount } = await supabase
+        .from('group_members')
+        .select('id', { count: 'exact' })
+        .eq('group_id', group.id)
+        .eq('status', 'active');
+
+      if (memberCount && memberCount.length >= group.max_members) {
+        throw new Error('Group is full');
       }
 
       // Join the group
@@ -169,7 +203,12 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
           status: 'active'
         });
 
-      if (joinError) throw joinError;
+      if (joinError) {
+        console.error('Join error:', joinError);
+        throw joinError;
+      }
+      console.log('Successfully joined group');
+      
       return group;
     },
     onSuccess: (group) => {
@@ -182,6 +221,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
       });
     },
     onError: (error: any) => {
+      console.error('Join group mutation error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to join group. Please try again.",
@@ -191,10 +231,12 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
   });
 
   const handleCreateGroup = (groupData: any) => {
+    console.log('Handle create group called with:', groupData);
     createGroupMutation.mutate(groupData);
   };
 
   const handleJoinGroup = (inviteCode: string) => {
+    console.log('Handle join group called with:', inviteCode);
     joinGroupMutation.mutate(inviteCode);
   };
 
