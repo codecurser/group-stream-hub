@@ -45,54 +45,96 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch all available groups
-  const { data: allGroups = [], isLoading: groupsLoading } = useQuery({
+  // Fetch all available groups with detailed logging
+  const { data: allGroups = [], isLoading: groupsLoading, error: groupsError } = useQuery({
     queryKey: ['groups'],
     queryFn: async (): Promise<Group[]> => {
       console.log('Fetching all groups...');
-      const { data, error } = await supabase
-        .from('groups')
-        .select(`
-          *,
-          group_members (
-            user_id,
-            status
-          )
-        `)
-        .order('created_at', { ascending: false });
+      console.log('Current user ID:', user.id);
       
-      if (error) {
-        console.error('Error fetching groups:', error);
+      try {
+        const { data, error } = await supabase
+          .from('groups')
+          .select(`
+            *,
+            group_members (
+              user_id,
+              status
+            )
+          `)
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching groups:', error);
+          throw error;
+        }
+        
+        console.log('Raw groups data from Supabase:', data);
+        console.log('Number of groups fetched:', data?.length || 0);
+        
+        if (data && data.length > 0) {
+          data.forEach((group, index) => {
+            console.log(`Group ${index + 1}:`, {
+              id: group.id,
+              name: group.name,
+              creator_id: group.creator_id,
+              memberCount: group.group_members?.length || 0
+            });
+          });
+        }
+        
+        return data || [];
+      } catch (error) {
+        console.error('Exception in groups query:', error);
         throw error;
       }
-      console.log('Fetched groups:', data);
-      return data || [];
     }
   });
 
-  // Fetch user's group memberships
-  const { data: userMemberships = [] } = useQuery({
+  // Fetch user's group memberships with detailed logging
+  const { data: userMemberships = [], error: membershipsError } = useQuery({
     queryKey: ['user-memberships', user.id],
     queryFn: async () => {
-      console.log('Fetching user memberships...');
-      const { data, error } = await supabase
-        .from('group_members')
-        .select('group_id')
-        .eq('user_id', user.id)
-        .eq('status', 'active');
+      console.log('Fetching user memberships for user:', user.id);
       
-      if (error) {
-        console.error('Error fetching memberships:', error);
+      try {
+        const { data, error } = await supabase
+          .from('group_members')
+          .select('group_id, status')
+          .eq('user_id', user.id)
+          .eq('status', 'active');
+        
+        if (error) {
+          console.error('Error fetching memberships:', error);
+          throw error;
+        }
+        
+        console.log('Raw memberships data:', data);
+        console.log('Number of memberships:', data?.length || 0);
+        
+        return data || [];
+      } catch (error) {
+        console.error('Exception in memberships query:', error);
         throw error;
       }
-      console.log('User memberships:', data);
-      return data || [];
     }
   });
+
+  // Debug logging for errors
+  useEffect(() => {
+    if (groupsError) {
+      console.error('Groups query error:', groupsError);
+    }
+    if (membershipsError) {
+      console.error('Memberships query error:', membershipsError);
+    }
+  }, [groupsError, membershipsError]);
 
   const createGroupMutation = useMutation({
     mutationFn: async (groupData: any) => {
       console.log('Creating group with data:', groupData);
+      console.log('User creating group:', user.id);
+      
       const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       
       const { data: group, error: groupError } = await supabase
@@ -113,7 +155,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
         console.error('Group creation error:', groupError);
         throw groupError;
       }
-      console.log('Group created:', group);
+      console.log('Group created successfully:', group);
 
       // Add creator as first member
       const { error: memberError } = await supabase
@@ -128,12 +170,12 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
         console.error('Member addition error:', memberError);
         throw memberError;
       }
-      console.log('Creator added as member');
+      console.log('Creator added as member successfully');
       
       return group;
     },
     onSuccess: (group) => {
-      console.log('Group creation successful:', group);
+      console.log('Group creation mutation successful:', group);
       queryClient.invalidateQueries({ queryKey: ['groups'] });
       queryClient.invalidateQueries({ queryKey: ['user-memberships'] });
       setShowCreateModal(false);
@@ -247,14 +289,20 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
     });
   };
 
+  // Filter groups with better logging
   const userGroupIds = userMemberships.map(m => m.group_id);
   const userGroups = allGroups.filter(g => userGroupIds.includes(g.id));
   const availableGroups = allGroups.filter(g => !userGroupIds.includes(g.id));
 
-  // Debug logging
+  // Enhanced debug logging
+  console.log('=== GROUP FILTERING DEBUG ===');
   console.log('All groups:', allGroups);
+  console.log('User memberships:', userMemberships);
   console.log('User group IDs:', userGroupIds);
+  console.log('User groups (my groups):', userGroups);
   console.log('Available groups:', availableGroups);
+  console.log('Groups loading:', groupsLoading);
+  console.log('================================');
 
   const calculateMonthlyCost = (group: Group) => {
     const memberCount = Math.max(group.group_members?.length || 1, 1);
@@ -421,6 +469,15 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Dashboard</h1>
           <p className="text-gray-600 text-lg">Manage your subscription groups and discover new ones</p>
+          
+          {/* Debug info for user */}
+          {(groupsError || membershipsError) && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <h3 className="text-red-800 font-medium">Debug Information:</h3>
+              {groupsError && <p className="text-red-600 text-sm">Groups Error: {groupsError.message}</p>}
+              {membershipsError && <p className="text-red-600 text-sm">Memberships Error: {membershipsError.message}</p>}
+            </div>
+          )}
         </div>
 
         {/* Quick Actions */}
