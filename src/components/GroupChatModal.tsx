@@ -26,7 +26,7 @@ const GroupChatModal = ({ group, user, isOpen, onClose }: GroupChatModalProps) =
 
   console.log('GroupChatModal props:', { group, user: user?.id, isOpen });
 
-  // Fetch chat messages
+  // Fetch chat messages with profile data using a separate query for profiles
   const { data: messages = [], error: messagesError, isLoading: messagesLoading } = useQuery({
     queryKey: ['chat-messages', group?.id],
     queryFn: async () => {
@@ -37,25 +37,45 @@ const GroupChatModal = ({ group, user, isOpen, onClose }: GroupChatModalProps) =
         return [];
       }
 
-      const { data, error } = await supabase
+      // First, get the messages
+      const { data: messagesData, error: messagesError } = await supabase
         .from('chat_messages')
-        .select(`
-          *,
-          profiles (
-            full_name
-          )
-        `)
+        .select('*')
         .eq('group_id', group.id)
         .order('created_at', { ascending: true });
       
-      console.log('Messages query result:', { data, error });
-      
-      if (error) {
-        console.error('Error fetching messages:', error);
-        throw error;
+      if (messagesError) {
+        console.error('Error fetching messages:', messagesError);
+        throw messagesError;
       }
+
+      if (!messagesData || messagesData.length === 0) {
+        console.log('No messages found');
+        return [];
+      }
+
+      // Get unique user IDs from messages
+      const userIds = [...new Set(messagesData.map(msg => msg.user_id))];
       
-      return data || [];
+      // Fetch profiles for these users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        // Continue without profile data
+      }
+
+      // Combine messages with profile data
+      const messagesWithProfiles = messagesData.map(msg => ({
+        ...msg,
+        profiles: profilesData?.find(profile => profile.id === msg.user_id) || null
+      }));
+
+      console.log('Messages with profiles:', messagesWithProfiles);
+      return messagesWithProfiles;
     },
     enabled: isOpen && !!group?.id
   });
