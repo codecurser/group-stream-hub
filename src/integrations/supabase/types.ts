@@ -141,6 +141,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_group_member: {
+        Args: { p_user_id: string; p_group_id: string }
+        Returns: boolean
+      }
       is_group_member: {
         Args: { group_id_param: string; user_id_param: string }
         Returns: boolean
