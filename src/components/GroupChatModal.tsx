@@ -38,6 +38,7 @@ const GroupChatModal = ({ group, user, isOpen, onClose }: GroupChatModalProps) =
       const from = (page - 1) * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
+      // First fetch messages
       const { data: messagesData, error: messagesError } = await supabase
         .from('chat_messages')
         .select('*')
@@ -63,7 +64,7 @@ const GroupChatModal = ({ group, user, isOpen, onClose }: GroupChatModalProps) =
       })).reverse(); // Reverse to show oldest first
     },
     enabled: isOpen && !!group?.id,
-    keepPreviousData: true
+    placeholderData: (previousData) => previousData
   });
 
   // Virtualization setup
