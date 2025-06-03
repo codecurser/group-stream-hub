@@ -57,6 +57,31 @@ const Index = () => {
   const [hasAnimatedFeatures, setHasAnimatedFeatures] = useState(false);
   const [hasAnimatedHowItWorks, setHasAnimatedHowItWorks] = useState(false);
   const [expandedStep, setExpandedStep] = useState<number | null>(null);
+  const [hasAnimatedRandomCard, setHasAnimatedRandomCard] = useState(false);
+  const [isAutoAnimating, setIsAutoAnimating] = useState(true);
+  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [isAutoSliding, setIsAutoSliding] = useState(true);
+
+  const testimonials = [
+    {
+      text: "PlayForm made it so easy to split my Netflix and Spotify with friends. We all save money and it's super simple to manage!",
+      author: "Alex P.",
+      role: "Early User",
+      initial: "A"
+    },
+    {
+      text: "Finally, a solution that makes sharing subscriptions fair and transparent. The payment splitting feature is brilliant!",
+      author: "Sarah M.",
+      role: "Power User",
+      initial: "S"
+    },
+    {
+      text: "I've saved over $200 this year by sharing my streaming services with friends. The interface is intuitive and secure.",
+      author: "Mike R.",
+      role: "Verified User",
+      initial: "M"
+    }
+  ];
 
   useEffect(() => {
     // Set up auth state listener
@@ -114,12 +139,32 @@ const Index = () => {
     return () => observer.disconnect();
   }, []);
 
+  // Add continuous card animation
+  useEffect(() => {
+    let currentIndex = 0;
+    const interval = setInterval(() => {
+      if (isAutoAnimating && howItWorksInView) {
+        setExpandedStep(currentIndex);
+        setTimeout(() => {
+          if (isAutoAnimating) {
+            setExpandedStep(null);
+          }
+        }, 2000); // Keep card open for 2 seconds
+        currentIndex = (currentIndex + 1) % 3; // Cycle through 0, 1, 2
+      }
+    }, 4000); // Total cycle time (2s open + 2s closed)
+
+    return () => clearInterval(interval);
+  }, [isAutoAnimating, howItWorksInView]);
+
   // Intersection Observer for how it works section
   useEffect(() => {
     const observer = new window.IntersectionObserver(
       ([entry]) => {
         setHowItWorksInView(entry.isIntersecting);
-        if (entry.isIntersecting) setHasAnimatedHowItWorks(true);
+        if (entry.isIntersecting) {
+          setHasAnimatedHowItWorks(true);
+        }
       },
       { threshold: 0.2 }
     );
@@ -196,8 +241,39 @@ const Index = () => {
   };
 
   const handleHowItWorksCardClick = (idx: number) => {
-    setExpandedStep(expandedStep === idx ? null : idx);
-    setHeroImageIdx(idx);
+    // If clicking the same card that's already expanded, close it and resume animation
+    if (expandedStep === idx) {
+      setExpandedStep(null);
+      // Resume animation after a short delay
+      setTimeout(() => {
+        setIsAutoAnimating(true);
+      }, 1000);
+    } else {
+      // Otherwise, expand the clicked card and pause animation
+      setExpandedStep(idx);
+      setIsAutoAnimating(false);
+    }
+  };
+
+  // Add auto-sliding effect for testimonials
+  useEffect(() => {
+    if (!isAutoSliding) return;
+
+    const interval = setInterval(() => {
+      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
+    }, 5000); // Change testimonial every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [isAutoSliding, testimonials.length]);
+
+  // Pause auto-sliding when user interacts with navigation
+  const handleTestimonialChange = (index: number) => {
+    setCurrentTestimonial(index);
+    setIsAutoSliding(false);
+    // Resume auto-sliding after 10 seconds of inactivity
+    setTimeout(() => {
+      setIsAutoSliding(true);
+    }, 10000);
   };
 
   if (loading) {
@@ -432,18 +508,18 @@ const Index = () => {
           {/* Steps */}
           <div className={`flex-1 flex flex-col items-center md:items-end ${hasAnimatedHowItWorks ? 'animate-fade-in-left' : ''} transition-all duration-300`}>
             <div
-              className={`bg-white/90 rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 animate-fade-in-up delay-200 cursor-pointer hover:shadow-xl transition-shadow ${expandedStep === 0 ? 'ring-2 ring-indigo-400' : ''}`}
+              className={`bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/50 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 animate-fade-in-up delay-200 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${expandedStep === 0 ? 'ring-2 ring-indigo-400 scale-105 shadow-2xl' : ''}`}
               onClick={() => handleHowItWorksCardClick(0)}
             >
-              <div className="w-12 h-12 mx-auto bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mb-4">
-                <Users className="w-6 h-6 text-white" />
+              <div className={`w-14 h-14 mx-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 transition-transform duration-300 shadow-lg ${expandedStep === 0 ? 'scale-110 rotate-12' : ''}`}>
+                <Users className={`w-7 h-7 text-white transition-transform duration-300 ${expandedStep === 0 ? 'scale-110' : ''}`} />
               </div>
-              <div className="font-bold text-lg mb-2 text-indigo-900">Create or Join a Group</div>
-              <div className="text-indigo-600">Start a new group or join an existing one with a simple invite code.</div>
+              <div className="font-bold text-lg mb-2 bg-gradient-to-r from-indigo-900 to-purple-900 bg-clip-text text-transparent transition-colors duration-300">Create or Join a Group</div>
+              <div className="text-indigo-600/90 transition-colors duration-300">Start a new group or join an existing one with a simple invite code.</div>
               <div
-                className={`transition-all overflow-hidden duration-500 ${expandedStep === 0 ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
+                className={`transition-all duration-500 ease-in-out ${expandedStep === 0 ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
               >
-                <div className="text-sm text-indigo-700 bg-indigo-50 rounded p-2">
+                <div className="text-sm text-indigo-700 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-lg p-4 border border-indigo-100/50 shadow-inner backdrop-blur-sm">
                   Invite friends with a code, manage group members, and keep everything organized in one place.
                 </div>
               </div>
@@ -451,18 +527,18 @@ const Index = () => {
           </div>
           <div className={`flex-1 flex flex-col items-center ${hasAnimatedHowItWorks ? 'animate-fade-in-up' : ''} transition-all duration-300`}>
             <div
-              className={`bg-white/90 rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 animate-fade-in-up delay-300 cursor-pointer hover:shadow-xl transition-shadow ${expandedStep === 1 ? 'ring-2 ring-indigo-400' : ''}`}
+              className={`bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/50 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 animate-fade-in-up delay-300 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${expandedStep === 1 ? 'ring-2 ring-indigo-400 scale-105 shadow-2xl' : ''}`}
               onClick={() => handleHowItWorksCardClick(1)}
             >
-              <div className="w-12 h-12 mx-auto bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mb-4">
-                <DollarSign className="w-6 h-6 text-white" />
+              <div className={`w-14 h-14 mx-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 transition-transform duration-300 shadow-lg ${expandedStep === 1 ? 'scale-110 rotate-12' : ''}`}>
+                <DollarSign className={`w-7 h-7 text-white transition-transform duration-300 ${expandedStep === 1 ? 'scale-110' : ''}`} />
               </div>
-              <div className="font-bold text-lg mb-2 text-indigo-900">Split the Cost</div>
-              <div className="text-indigo-600">Easily manage payments and see a transparent breakdown for everyone.</div>
+              <div className="font-bold text-lg mb-2 bg-gradient-to-r from-indigo-900 to-purple-900 bg-clip-text text-transparent transition-colors duration-300">Split the Cost</div>
+              <div className="text-indigo-600/90 transition-colors duration-300">Easily manage payments and see a transparent breakdown for everyone.</div>
               <div
-                className={`transition-all overflow-hidden duration-500 ${expandedStep === 1 ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
+                className={`transition-all duration-500 ease-in-out ${expandedStep === 1 ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
               >
-                <div className="text-sm text-indigo-700 bg-indigo-50 rounded p-2">
+                <div className="text-sm text-indigo-700 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-lg p-4 border border-indigo-100/50 shadow-inner backdrop-blur-sm">
                   Automatic payment calculations, reminders, and secure transactions for peace of mind.
                 </div>
               </div>
@@ -470,18 +546,18 @@ const Index = () => {
           </div>
           <div className={`flex-1 flex flex-col items-center md:items-start ${hasAnimatedHowItWorks ? 'animate-fade-in-right' : ''} transition-all duration-300`}>
             <div
-              className={`bg-white/90 rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 animate-fade-in-up delay-400 cursor-pointer hover:shadow-xl transition-shadow ${expandedStep === 2 ? 'ring-2 ring-indigo-400' : ''}`}
+              className={`bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/50 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 animate-fade-in-up delay-400 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${expandedStep === 2 ? 'ring-2 ring-indigo-400 scale-105 shadow-2xl' : ''}`}
               onClick={() => handleHowItWorksCardClick(2)}
             >
-              <div className="w-12 h-12 mx-auto bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mb-4">
-                <Shield className="w-6 h-6 text-white" />
+              <div className={`w-14 h-14 mx-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 transition-transform duration-300 shadow-lg ${expandedStep === 2 ? 'scale-110 rotate-12' : ''}`}>
+                <Shield className={`w-7 h-7 text-white transition-transform duration-300 ${expandedStep === 2 ? 'scale-110' : ''}`} />
               </div>
-              <div className="font-bold text-lg mb-2 text-indigo-900">Enjoy Premium Content</div>
-              <div className="text-indigo-600">Access your favorite services at a fraction of the price, securely and privately.</div>
+              <div className="font-bold text-lg mb-2 bg-gradient-to-r from-indigo-900 to-purple-900 bg-clip-text text-transparent transition-colors duration-300">Enjoy Premium Content</div>
+              <div className="text-indigo-600/90 transition-colors duration-300">Access your favorite services at a fraction of the price, securely and privately.</div>
               <div
-                className={`transition-all overflow-hidden duration-500 ${expandedStep === 2 ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
+                className={`transition-all duration-500 ease-in-out ${expandedStep === 2 ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
               >
-                <div className="text-sm text-indigo-700 bg-indigo-50 rounded p-2">
+                <div className="text-sm text-indigo-700 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-lg p-4 border border-indigo-100/50 shadow-inner backdrop-blur-sm">
                   Get instant access to premium content and manage your subscriptions with ease.
                 </div>
               </div>
@@ -490,14 +566,130 @@ const Index = () => {
         </div>
       </section>
       {/* Testimonial Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-100 to-purple-100 z-10">
-        <div className="max-w-3xl mx-auto text-center animate-fade-in-up">
-          <div className="inline-block bg-white/80 rounded-xl px-8 py-6 shadow-lg border border-blue-200">
-            <p className="text-lg text-gray-700 italic mb-4">“PlayForm made it so easy to split my Netflix and Spotify with friends. We all save money and it's super simple to manage!”</p>
-            <div className="flex items-center justify-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-400 to-purple-400 flex items-center justify-center text-white font-bold">A</div>
-              <span className="font-semibold text-gray-900">Alex P.</span>
-              <span className="text-gray-400">/ Early User</span>
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 z-10 relative overflow-hidden min-h-[600px]">
+        {/* Background Gradient */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-100/40 via-indigo-100/40 to-purple-100/40"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/50 via-transparent to-transparent"></div>
+        </div>
+
+        <div className="max-w-6xl mx-auto relative z-10">
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Trusted by Users Worldwide
+          </h2>
+          <p className="text-center text-gray-600 mb-8 max-w-xl mx-auto text-sm">
+            Join thousands of satisfied users who are already saving money with PlayForm
+          </p>
+          
+          <div className="relative">
+            {/* Main testimonial container */}
+            <div className="relative max-w-5xl mx-auto">
+              {/* Navigation arrows */}
+              <button 
+                onClick={() => handleTestimonialChange((currentTestimonial - 1 + testimonials.length) % testimonials.length)}
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-gray-600 hover:text-indigo-600 transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              
+              <button 
+                onClick={() => handleTestimonialChange((currentTestimonial + 1) % testimonials.length)}
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-6 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-lg flex items-center justify-center text-gray-600 hover:text-indigo-600 transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+
+              {/* Testimonials slider */}
+              <div className="overflow-hidden">
+                <div 
+                  className="flex transition-transform duration-700 ease-in-out"
+                  style={{ transform: `translateX(calc(-${currentTestimonial * 33.333}% + 33.333%))` }}
+                >
+                  {testimonials.map((testimonial, index) => (
+                    <div 
+                      key={index} 
+                      className="w-1/3 flex-shrink-0 px-3 transition-all duration-500"
+                    >
+                      <div className={`bg-white/90 backdrop-blur-md rounded-xl shadow-lg border border-white/50 p-6 relative overflow-hidden transition-all duration-500 ${
+                        currentTestimonial === index 
+                          ? 'scale-100 opacity-100 shadow-xl' 
+                          : 'scale-95 opacity-60'
+                      }`}>
+                        {/* Decorative background elements */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100/30 to-purple-100/30 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl opacity-50"></div>
+                        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-br from-indigo-100/30 to-pink-100/30 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl opacity-50"></div>
+
+                        {/* Content wrapper */}
+                        <div className="relative z-10">
+                          {/* Header with rating and quote */}
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex gap-0.5">
+                              {[...Array(5)].map((_, i) => (
+                                <svg
+                                  key={i}
+                                  className="w-4 h-4 text-yellow-400"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                              ))}
+                            </div>
+                            <svg className="w-6 h-6 text-indigo-200" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                            </svg>
+                          </div>
+
+                          {/* Testimonial text */}
+                          <div className="mb-6">
+                            <p className="text-base text-gray-700 leading-relaxed">
+                              {testimonial.text}
+                            </p>
+                          </div>
+
+                          {/* Author info with enhanced styling */}
+                          <div className="flex items-center gap-3 pt-4 border-t border-white/50">
+                            <div className="relative">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500/90 to-purple-500/90 backdrop-blur-sm flex items-center justify-center text-white font-semibold text-sm shadow-md">
+                                {testimonial.initial}
+                              </div>
+                              <div className="absolute -inset-0.5 bg-gradient-to-br from-blue-500/50 to-purple-500/50 rounded-full blur opacity-30"></div>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-gray-800 text-sm">{testimonial.author}</h4>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-600">{testimonial.role}</span>
+                                <span className="w-1 h-1 rounded-full bg-gray-300/50"></span>
+                                <span className="text-xs text-indigo-600 font-medium">Verified User</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Progress indicator */}
+              <div className="flex justify-center gap-2 mt-6">
+                {testimonials.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleTestimonialChange(index)}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      currentTestimonial === index 
+                        ? 'bg-indigo-600 scale-125' 
+                        : 'bg-gray-300/50 hover:bg-gray-400/50'
+                    }`}
+                    aria-label={`Go to testimonial ${index + 1}`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -598,6 +790,13 @@ style.innerHTML = `
   @keyframes kenburns { 0% { transform: scale(1) translateY(0); } 100% { transform: scale(1.08) translateY(-8px); } }
   .duration-300 { transition-duration: 300ms; }
   .delay-50 { animation-delay: 0.05s; }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 `;
 if (typeof document !== 'undefined' && !document.getElementById('playform-animations')) {
   style.id = 'playform-animations';
