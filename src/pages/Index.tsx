@@ -17,6 +17,30 @@ const floatingIcons = [
   { src: '/placeholder.svg', alt: 'Amazon', style: 'bottom-20 right-32 animate-float-slow' },
 ];
 
+// Carousel brand logos (public SVG URLs)
+const heroImages = [
+  {
+    src: 'https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg',
+    alt: 'Netflix Logo',
+    bg: 'bg-white',
+  },
+  {
+    src: 'https://upload.wikimedia.org/wikipedia/commons/1/19/Spotify_logo_without_text.svg',
+    alt: 'Spotify Logo',
+    bg: 'bg-white',
+  },
+  {
+    src: 'https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg',
+    alt: 'Disney+ Logo',
+    bg: 'bg-white',
+  },
+  {
+    src: 'https://upload.wikimedia.org/wikipedia/commons/f/f1/Prime_Video.png',
+    alt: 'Amazon Prime Video Logo',
+    bg: 'bg-white',
+  },
+];
+
 const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -27,6 +51,11 @@ const Index = () => {
   const [featuresInView, setFeaturesInView] = useState(false);
   const [howItWorksInView, setHowItWorksInView] = useState(false);
   const howItWorksRef = useRef<HTMLDivElement>(null);
+  const [heroImageIdx, setHeroImageIdx] = useState(0);
+  const [fade, setFade] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [hasAnimatedFeatures, setHasAnimatedFeatures] = useState(false);
+  const [hasAnimatedHowItWorks, setHasAnimatedHowItWorks] = useState(false);
 
   useEffect(() => {
     // Set up auth state listener
@@ -74,7 +103,10 @@ const Index = () => {
   // Intersection Observer for features section
   useEffect(() => {
     const observer = new window.IntersectionObserver(
-      ([entry]) => setFeaturesInView(entry.isIntersecting),
+      ([entry]) => {
+        setFeaturesInView(entry.isIntersecting);
+        if (entry.isIntersecting) setHasAnimatedFeatures(true);
+      },
       { threshold: 0.2 }
     );
     if (featuresRef.current) observer.observe(featuresRef.current);
@@ -84,12 +116,42 @@ const Index = () => {
   // Intersection Observer for how it works section
   useEffect(() => {
     const observer = new window.IntersectionObserver(
-      ([entry]) => setHowItWorksInView(entry.isIntersecting),
+      ([entry]) => {
+        setHowItWorksInView(entry.isIntersecting);
+        if (entry.isIntersecting) setHasAnimatedHowItWorks(true);
+      },
       { threshold: 0.2 }
     );
     if (howItWorksRef.current) observer.observe(howItWorksRef.current);
     return () => observer.disconnect();
   }, []);
+
+  // Carousel effect for hero image
+  useEffect(() => {
+    if (isTransitioning) return;
+    const interval = setInterval(() => {
+      setFade(false);
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setHeroImageIdx((idx) => (idx + 1) % heroImages.length);
+        setFade(true);
+        setTimeout(() => setIsTransitioning(false), 1000);
+      }, 400); // fade out duration
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [heroImageIdx, isTransitioning]);
+
+  // Dot click handler
+  const handleDotClick = (idx: number) => {
+    if (idx === heroImageIdx || isTransitioning) return;
+    setFade(false);
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setHeroImageIdx(idx);
+      setFade(true);
+      setTimeout(() => setIsTransitioning(false), 1000);
+    }, 400);
+  };
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -225,8 +287,37 @@ const Index = () => {
               <Button size="lg" variant="outline" className="text-lg px-8 py-3 border-2 hover:border-blue-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400" onClick={() => featuresRef.current?.scrollIntoView({ behavior: 'smooth' })}>Learn More</Button>
             </div>
           </div>
-          <div className="flex-1 flex justify-center md:justify-end relative">
-            <img src="/placeholder.svg" alt="Sharing Illustration" width={340} height={340} className="rounded-xl shadow-2xl border border-gray-200 bg-white/70 animate-float-hero" />
+          <div className="flex-1 flex flex-col items-center justify-center md:justify-end relative min-h-[340px]">
+            {/* Blurred circular background */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] md:w-[380px] md:h-[380px] rounded-full bg-gradient-to-br from-blue-100 via-purple-100 to-white/80 blur-2xl opacity-70 z-0"></div>
+            {/* Ken Burns + crossfade image */}
+            <div className="relative w-[220px] h-[220px] md:w-[340px] md:h-[340px] flex items-center justify-center overflow-hidden">
+              <img
+                src={heroImages[heroImageIdx].src}
+                alt={heroImages[heroImageIdx].alt}
+                width={340}
+                height={340}
+                className={`absolute inset-0 w-full h-full object-contain rounded-xl border border-blue-200 shadow-2xl bg-white/90 transition-all duration-1000 z-20
+                  ${fade ? 'opacity-100 animate-kenburns' : 'opacity-0'}
+                `}
+                style={{padding: '2rem'}}
+                draggable={false}
+              />
+            </div>
+            {/* Carousel dots */}
+            <div className="flex gap-2 mt-6 justify-center" role="tablist" aria-label="Brand carousel navigation">
+              {heroImages.map((img, idx) => (
+                <button
+                  key={img.alt}
+                  className={`w-3 h-3 rounded-full transition-all duration-300 border-2 ${heroImageIdx === idx ? 'bg-blue-500 border-blue-500 scale-125 shadow' : 'bg-gray-200 border-gray-300'} focus:outline-none focus:ring-2 focus:ring-blue-400`}
+                  aria-label={`Show ${img.alt}`}
+                  aria-selected={heroImageIdx === idx}
+                  tabIndex={0}
+                  onClick={() => handleDotClick(idx)}
+                  disabled={isTransitioning}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -238,7 +329,7 @@ const Index = () => {
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">The smart way to manage shared subscriptions with transparency and security.</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className={`text-center transition-all duration-700 border-0 bg-white/90 backdrop-blur-sm ${featuresInView ? 'animate-fade-in-up' : 'opacity-0 translate-y-10'} hover:scale-105 hover:shadow-2xl hover:border-blue-400 border-t-4 border-transparent`}>
+            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up' : 'opacity-0 translate-y-10'} hover:scale-105 hover:shadow-2xl hover:border-blue-400 border-t-4 border-transparent`}>
               <CardHeader>
                 <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
                   <Users className="w-8 h-8 text-white" />
@@ -249,7 +340,7 @@ const Index = () => {
                 <CardDescription>Create and join subscription groups with simple invite codes. Manage members and track participation effortlessly.</CardDescription>
               </CardContent>
             </Card>
-            <Card className={`text-center transition-all duration-700 border-0 bg-white/90 backdrop-blur-sm ${featuresInView ? 'animate-fade-in-up delay-100' : 'opacity-0 translate-y-10'} hover:scale-105 hover:shadow-2xl hover:border-green-400 border-t-4 border-transparent`}>
+            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up delay-50' : 'opacity-0 translate-y-10'} hover:scale-105 hover:shadow-2xl hover:border-green-400 border-t-4 border-transparent`}>
               <CardHeader>
                 <div className="w-16 h-16 mx-auto bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
                   <DollarSign className="w-8 h-8 text-white" />
@@ -260,7 +351,7 @@ const Index = () => {
                 <CardDescription>Automatically calculate and track payments. Transparent cost breakdown with secure payment processing.</CardDescription>
               </CardContent>
             </Card>
-            <Card className={`text-center transition-all duration-700 border-0 bg-white/90 backdrop-blur-sm ${featuresInView ? 'animate-fade-in-up delay-200' : 'opacity-0 translate-y-10'} hover:scale-105 hover:shadow-2xl hover:border-purple-400 border-t-4 border-transparent`}>
+            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up delay-100' : 'opacity-0 translate-y-10'} hover:scale-105 hover:shadow-2xl hover:border-purple-400 border-t-4 border-transparent`}>
               <CardHeader>
                 <div className="w-16 h-16 mx-auto bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
                   <Shield className="w-8 h-8 text-white" />
@@ -271,7 +362,7 @@ const Index = () => {
                 <CardDescription>Bank-level security for all transactions. Your data is encrypted and never shared with third parties.</CardDescription>
               </CardContent>
             </Card>
-            <Card className={`text-center transition-all duration-700 border-0 bg-white/90 backdrop-blur-sm ${featuresInView ? 'animate-fade-in-up delay-300' : 'opacity-0 translate-y-10'} hover:scale-105 hover:shadow-2xl hover:border-orange-400 border-t-4 border-transparent`}>
+            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up delay-150' : 'opacity-0 translate-y-10'} hover:scale-105 hover:shadow-2xl hover:border-orange-400 border-t-4 border-transparent`}>
               <CardHeader>
                 <div className="w-16 h-16 mx-auto bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
                   <Smartphone className="w-8 h-8 text-white" />
@@ -295,7 +386,7 @@ const Index = () => {
           {/* Connecting line */}
           <div className="hidden md:block absolute left-1/2 top-16 h-64 w-1 -translate-x-1/2 bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400 rounded-full opacity-40"></div>
           {/* Steps */}
-          <div className={`flex-1 flex flex-col items-center md:items-end ${howItWorksInView ? 'animate-fade-in-left' : 'opacity-0 -translate-x-10'} transition-all duration-700`}>
+          <div className={`flex-1 flex flex-col items-center md:items-end ${hasAnimatedHowItWorks ? 'animate-fade-in-left' : 'opacity-0 -translate-x-10'} transition-all duration-300`}>
             <div className="bg-white/90 rounded-xl shadow-lg p-6 mb-8 border-t-4 border-blue-400 w-64">
               <div className="w-12 h-12 mx-auto bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-4">
                 <Users className="w-6 h-6 text-white" />
@@ -304,7 +395,7 @@ const Index = () => {
               <div className="text-gray-600">Start a new group or join an existing one with a simple invite code.</div>
             </div>
           </div>
-          <div className={`flex-1 flex flex-col items-center ${howItWorksInView ? 'animate-fade-in-up' : 'opacity-0 translate-y-10'} transition-all duration-700`}>
+          <div className={`flex-1 flex flex-col items-center ${hasAnimatedHowItWorks ? 'animate-fade-in-up' : 'opacity-0 translate-y-10'} transition-all duration-300`}>
             <div className="bg-white/90 rounded-xl shadow-lg p-6 mb-8 border-t-4 border-green-400 w-64">
               <div className="w-12 h-12 mx-auto bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mb-4">
                 <DollarSign className="w-6 h-6 text-white" />
@@ -313,7 +404,7 @@ const Index = () => {
               <div className="text-gray-600">Easily manage payments and see a transparent breakdown for everyone.</div>
             </div>
           </div>
-          <div className={`flex-1 flex flex-col items-center md:items-start ${howItWorksInView ? 'animate-fade-in-right' : 'opacity-0 translate-x-10'} transition-all duration-700`}>
+          <div className={`flex-1 flex flex-col items-center md:items-start ${hasAnimatedHowItWorks ? 'animate-fade-in-right' : 'opacity-0 translate-x-10'} transition-all duration-300`}>
             <div className="bg-white/90 rounded-xl shadow-lg p-6 mb-8 border-t-4 border-purple-400 w-64">
               <div className="w-12 h-12 mx-auto bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4">
                 <Shield className="w-6 h-6 text-white" />
@@ -426,6 +517,13 @@ style.innerHTML = `
   .animate-float-fast { animation: float-fast 3s ease-in-out infinite; }
   .animate-glow-border { animation: glow-border 2.5s ease-in-out infinite; }
   .animate-pulse-once { animation: pulse-once 0.7s cubic-bezier(0.23, 1, 0.32, 1) 1; }
+  .transition-opacity { transition-property: opacity; }
+  .duration-400 { transition-duration: 400ms; }
+  .duration-600 { transition-duration: 600ms; }
+  .animate-kenburns { animation: kenburns 3.5s ease-in-out both; }
+  @keyframes kenburns { 0% { transform: scale(1) translateY(0); } 100% { transform: scale(1.08) translateY(-8px); } }
+  .duration-300 { transition-duration: 300ms; }
+  .delay-50 { animation-delay: 0.05s; }
 `;
 if (typeof document !== 'undefined' && !document.getElementById('playform-animations')) {
   style.id = 'playform-animations';
