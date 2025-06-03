@@ -56,6 +56,7 @@ const Index = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [hasAnimatedFeatures, setHasAnimatedFeatures] = useState(false);
   const [hasAnimatedHowItWorks, setHasAnimatedHowItWorks] = useState(false);
+  const [expandedStep, setExpandedStep] = useState<number | null>(null);
 
   useEffect(() => {
     // Set up auth state listener
@@ -169,6 +170,36 @@ const Index = () => {
     }
   };
 
+  const scrollToHowItWorks = () => {
+    const targetPosition = howItWorksRef.current?.getBoundingClientRect().top + window.pageYOffset;
+    const startPosition = window.pageYOffset;
+    const distance = targetPosition - startPosition;
+    const duration = 2000; // Duration in milliseconds
+    let start = null;
+
+    const animation = (currentTime) => {
+      if (start === null) start = currentTime;
+      const timeElapsed = currentTime - start;
+      const run = ease(timeElapsed, startPosition, distance, duration);
+      window.scrollTo(0, run);
+      if (timeElapsed < duration) requestAnimationFrame(animation);
+    };
+
+    const ease = (t, b, c, d) => {
+      t /= d / 2;
+      if (t < 1) return c / 2 * t * t + b;
+      t--;
+      return -c / 2 * (t * (t - 2) - 1) + b;
+    };
+
+    requestAnimationFrame(animation);
+  };
+
+  const handleHowItWorksCardClick = (idx: number) => {
+    setExpandedStep(expandedStep === idx ? null : idx);
+    setHeroImageIdx(idx);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
@@ -254,7 +285,7 @@ const Index = () => {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">PlayForm</h1>
           </div>
           <div className="flex items-center space-x-4">
-            <a href="#how-it-works" className="text-gray-700 font-medium px-3 py-2 rounded transition-colors hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400">How it Works</a>
+            <a href="#how-it-works" className="text-gray-700 font-medium px-3 py-2 rounded transition-colors hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400" onClick={(e) => { e.preventDefault(); scrollToHowItWorks(); }}>How it Works</a>
             <Button variant="ghost" onClick={() => setShowAuthModal(true)} aria-label="Sign In">Sign In</Button>
             <Button onClick={() => setShowAuthModal(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-400" aria-label="Get Started">Get Started</Button>
           </div>
@@ -299,9 +330,23 @@ const Index = () => {
                 height={340}
                 className={`absolute inset-0 w-full h-full object-contain rounded-xl border border-blue-200 shadow-2xl bg-white/90 transition-all duration-1000 z-20
                   ${fade ? 'opacity-100 animate-kenburns' : 'opacity-0'}
+                  cursor-pointer
                 `}
                 style={{padding: '2rem'}}
                 draggable={false}
+                onClick={(e) => {
+                  if (isTransitioning) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = e.clientX - rect.left;
+                  const isLeftSide = x < rect.width / 2;
+                  setFade(false);
+                  setIsTransitioning(true);
+                  setTimeout(() => {
+                    setHeroImageIdx((idx) => (isLeftSide ? (idx - 1 + heroImages.length) % heroImages.length : (idx + 1) % heroImages.length));
+                    setFade(true);
+                    setTimeout(() => setIsTransitioning(false), 1000);
+                  }, 400);
+                }}
               />
             </div>
             {/* Carousel dots */}
@@ -377,38 +422,69 @@ const Index = () => {
         </div>
       </section>
       {/* How It Works Section */}
-      <section id="how-it-works" ref={howItWorksRef} className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-50 to-purple-50 z-10">
-        <div className="max-w-5xl mx-auto text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">How It Works</h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">Get started in just a few steps. Sharing subscriptions has never been easier!</p>
+      <section id="how-it-works" ref={howItWorksRef} className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-indigo-50 to-purple-50 z-10 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-purple-100 opacity-50 animate-pulse"></div>
+        <div className="max-w-5xl mx-auto text-center mb-16 relative z-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-indigo-900 mb-4 animate-fade-in-up">How It Works</h2>
+          <p className="text-xl text-indigo-600 max-w-2xl mx-auto animate-fade-in-up delay-100">Get started in just a few steps. Sharing subscriptions has never been easier!</p>
         </div>
-        <div className="flex flex-col md:flex-row items-center justify-center gap-12 relative">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-12 relative z-10">
           {/* Steps */}
           <div className={`flex-1 flex flex-col items-center md:items-end ${hasAnimatedHowItWorks ? 'animate-fade-in-left' : ''} transition-all duration-300`}>
-            <div className="bg-white/90 rounded-xl shadow-lg p-6 mb-8 border-t-4 border-blue-400 w-64">
-              <div className="w-12 h-12 mx-auto bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-4">
+            <div
+              className={`bg-white/90 rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 animate-fade-in-up delay-200 cursor-pointer hover:shadow-xl transition-shadow ${expandedStep === 0 ? 'ring-2 ring-indigo-400' : ''}`}
+              onClick={() => handleHowItWorksCardClick(0)}
+            >
+              <div className="w-12 h-12 mx-auto bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mb-4">
                 <Users className="w-6 h-6 text-white" />
               </div>
-              <div className="font-bold text-lg mb-2">Create or Join a Group</div>
-              <div className="text-gray-600">Start a new group or join an existing one with a simple invite code.</div>
+              <div className="font-bold text-lg mb-2 text-indigo-900">Create or Join a Group</div>
+              <div className="text-indigo-600">Start a new group or join an existing one with a simple invite code.</div>
+              <div
+                className={`transition-all overflow-hidden duration-500 ${expandedStep === 0 ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
+              >
+                <div className="text-sm text-indigo-700 bg-indigo-50 rounded p-2">
+                  Invite friends with a code, manage group members, and keep everything organized in one place.
+                </div>
+              </div>
             </div>
           </div>
           <div className={`flex-1 flex flex-col items-center ${hasAnimatedHowItWorks ? 'animate-fade-in-up' : ''} transition-all duration-300`}>
-            <div className="bg-white/90 rounded-xl shadow-lg p-6 mb-8 border-t-4 border-green-400 w-64">
-              <div className="w-12 h-12 mx-auto bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mb-4">
+            <div
+              className={`bg-white/90 rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 animate-fade-in-up delay-300 cursor-pointer hover:shadow-xl transition-shadow ${expandedStep === 1 ? 'ring-2 ring-indigo-400' : ''}`}
+              onClick={() => handleHowItWorksCardClick(1)}
+            >
+              <div className="w-12 h-12 mx-auto bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mb-4">
                 <DollarSign className="w-6 h-6 text-white" />
               </div>
-              <div className="font-bold text-lg mb-2">Split the Cost</div>
-              <div className="text-gray-600">Easily manage payments and see a transparent breakdown for everyone.</div>
+              <div className="font-bold text-lg mb-2 text-indigo-900">Split the Cost</div>
+              <div className="text-indigo-600">Easily manage payments and see a transparent breakdown for everyone.</div>
+              <div
+                className={`transition-all overflow-hidden duration-500 ${expandedStep === 1 ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
+              >
+                <div className="text-sm text-indigo-700 bg-indigo-50 rounded p-2">
+                  Automatic payment calculations, reminders, and secure transactions for peace of mind.
+                </div>
+              </div>
             </div>
           </div>
           <div className={`flex-1 flex flex-col items-center md:items-start ${hasAnimatedHowItWorks ? 'animate-fade-in-right' : ''} transition-all duration-300`}>
-            <div className="bg-white/90 rounded-xl shadow-lg p-6 mb-8 border-t-4 border-purple-400 w-64">
-              <div className="w-12 h-12 mx-auto bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4">
+            <div
+              className={`bg-white/90 rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 animate-fade-in-up delay-400 cursor-pointer hover:shadow-xl transition-shadow ${expandedStep === 2 ? 'ring-2 ring-indigo-400' : ''}`}
+              onClick={() => handleHowItWorksCardClick(2)}
+            >
+              <div className="w-12 h-12 mx-auto bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center mb-4">
                 <Shield className="w-6 h-6 text-white" />
               </div>
-              <div className="font-bold text-lg mb-2">Enjoy Premium Content</div>
-              <div className="text-gray-600">Access your favorite services at a fraction of the price, securely and privately.</div>
+              <div className="font-bold text-lg mb-2 text-indigo-900">Enjoy Premium Content</div>
+              <div className="text-indigo-600">Access your favorite services at a fraction of the price, securely and privately.</div>
+              <div
+                className={`transition-all overflow-hidden duration-500 ${expandedStep === 2 ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
+              >
+                <div className="text-sm text-indigo-700 bg-indigo-50 rounded p-2">
+                  Get instant access to premium content and manage your subscriptions with ease.
+                </div>
+              </div>
             </div>
           </div>
         </div>
