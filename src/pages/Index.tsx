@@ -9,14 +9,6 @@ import { User, Session } from '@supabase/supabase-js';
 import { useToast } from "@/hooks/use-toast";
 import { useRef } from 'react';
 
-// Floating icons for hero
-const floatingIcons = [
-  { src: '/placeholder.svg', alt: 'Netflix', style: 'top-8 left-8 animate-float-slow' },
-  { src: '/placeholder.svg', alt: 'Spotify', style: 'top-20 right-16 animate-float-medium' },
-  { src: '/placeholder.svg', alt: 'Disney+', style: 'bottom-12 left-24 animate-float-fast' },
-  { src: '/placeholder.svg', alt: 'Amazon', style: 'bottom-20 right-32 animate-float-slow' },
-];
-
 // Carousel brand logos (public SVG URLs)
 const heroImages = [
   {
@@ -374,7 +366,7 @@ const Index = () => {
       <nav className="bg-white/60 backdrop-blur-lg border-b sticky top-0 z-50 shadow-lg transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
           <div className="flex items-center gap-2">
-            <img src="/placeholder.svg" alt="PlayForm Logo" width={36} height={36} className="rounded" />
+            <img src="/images/Untitled design (1).png" alt="PlayForm Logo" width={36} height={36} className="rounded" />
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">PlayForm</h1>
           </div>
           <div className="flex items-center space-x-4">
@@ -386,10 +378,6 @@ const Index = () => {
       </nav>
       {/* Hero Section */}
       <section className="relative pt-28 pb-36 px-4 sm:px-6 lg:px-8 z-10 overflow-hidden">
-        {/* Floating icons */}
-        {floatingIcons.map((icon, i) => (
-          <img key={i} src={icon.src} alt={icon.alt} width={48} height={48} className={`absolute ${icon.style} opacity-70`} style={{zIndex: 1}} />
-        ))}
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12 relative z-10">
           <div className="flex-1 text-center md:text-left">
             <div className="mb-2 text-lg text-blue-500 font-semibold tracking-wide animate-fade-in-up">Share More. Save More.</div>
@@ -719,7 +707,7 @@ const Index = () => {
       <footer className="bg-white/60 backdrop-blur-lg border-t py-8 px-4 sm:px-6 lg:px-8 text-center shadow-inner animate-fade-in-up">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 mb-2 md:mb-0">
-            <img src="/placeholder.svg" alt="PlayForm Logo" width={28} height={28} className="rounded" />
+            <img src="/images/Untitled design (1).png" alt="PlayForm Logo" width={28} height={28} className="rounded" />
             <span className="font-bold text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">PlayForm</span>
           </div>
           <div className="flex gap-6 text-gray-600 text-sm">
