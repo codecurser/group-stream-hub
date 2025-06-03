@@ -59,6 +59,21 @@ const Index = () => {
   const [expandedStep, setExpandedStep] = useState<number | null>(null);
   const [hasAnimatedRandomCard, setHasAnimatedRandomCard] = useState(false);
   const [isAutoAnimating, setIsAutoAnimating] = useState(true);
+  const animationRef = useRef<{
+    currentIndex: number;
+    lastUpdate: number;
+    frameId: number | null;
+    isAnimating: boolean;
+    timeoutId: number | null;
+    isExpanding: boolean;
+  }>({
+    currentIndex: 0,
+    lastUpdate: 0,
+    frameId: null,
+    isAnimating: false,
+    timeoutId: null,
+    isExpanding: false
+  });
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [isAutoSliding, setIsAutoSliding] = useState(true);
 
@@ -139,48 +154,92 @@ const Index = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Add continuous card animation
+  // Animation control using requestAnimationFrame
   useEffect(() => {
-    let currentIndex = 0;
-    let timeoutId: NodeJS.Timeout;
-    let intervalId: NodeJS.Timeout;
+    const ANIMATION_INTERVAL = 4000; // 4 seconds between transitions
+    const EXPAND_DURATION = 2000; // 2 seconds expanded state
 
-    const startAnimation = () => {
-      if (isAutoAnimating && howItWorksInView) {
-        setExpandedStep(currentIndex);
-        timeoutId = setTimeout(() => {
-          if (isAutoAnimating) {
-            setExpandedStep(null);
-            currentIndex = (currentIndex + 1) % 3;
-          }
-        }, 2000);
+    const animate = (timestamp: number) => {
+      if (!howItWorksInView || !isAutoAnimating) {
+        animationRef.current.isAnimating = false;
+        return;
       }
+
+      // Initialize animation if not started
+      if (!animationRef.current.isAnimating) {
+        animationRef.current.lastUpdate = timestamp;
+        animationRef.current.isAnimating = true;
+        animationRef.current.isExpanding = true;
+        setExpandedStep(animationRef.current.currentIndex);
+      }
+
+      const elapsed = timestamp - animationRef.current.lastUpdate;
+
+      // Handle expansion and collapse phases
+      if (animationRef.current.isExpanding) {
+        if (elapsed >= EXPAND_DURATION) {
+          animationRef.current.isExpanding = false;
+          animationRef.current.lastUpdate = timestamp;
+          setExpandedStep(null);
+        }
+      } else {
+        if (elapsed >= ANIMATION_INTERVAL - EXPAND_DURATION) {
+          animationRef.current.currentIndex = (animationRef.current.currentIndex + 1) % 3;
+          animationRef.current.isExpanding = true;
+          animationRef.current.lastUpdate = timestamp;
+          setExpandedStep(animationRef.current.currentIndex);
+        }
+      }
+
+      animationRef.current.frameId = requestAnimationFrame(animate);
     };
 
-    // Initial animation
-    startAnimation();
-
-    // Set up interval for continuous animation
-    intervalId = setInterval(() => {
-      if (isAutoAnimating && howItWorksInView) {
-        startAnimation();
+    // Start animation if section is in view
+    if (howItWorksInView && isAutoAnimating) {
+      // Clear any existing animations
+      if (animationRef.current.frameId) {
+        cancelAnimationFrame(animationRef.current.frameId);
       }
-    }, 4000);
+      if (animationRef.current.timeoutId) {
+        window.clearTimeout(animationRef.current.timeoutId);
+      }
+      
+      // Reset animation state
+      animationRef.current.currentIndex = 0;
+      animationRef.current.isAnimating = false;
+      animationRef.current.isExpanding = false;
+      
+      // Start new animation
+      animationRef.current.frameId = requestAnimationFrame(animate);
+    }
 
     // Cleanup function
     return () => {
-      clearTimeout(timeoutId);
-      clearInterval(intervalId);
+      if (animationRef.current.frameId) {
+        cancelAnimationFrame(animationRef.current.frameId);
+      }
+      if (animationRef.current.timeoutId) {
+        window.clearTimeout(animationRef.current.timeoutId);
+      }
     };
-  }, [isAutoAnimating, howItWorksInView]);
+  }, [howItWorksInView, isAutoAnimating]);
 
   // Intersection Observer for how it works section
   useEffect(() => {
     const observer = new window.IntersectionObserver(
       ([entry]) => {
-        setHowItWorksInView(entry.isIntersecting);
-        if (entry.isIntersecting) {
+        const isIntersecting = entry.isIntersecting;
+        setHowItWorksInView(isIntersecting);
+        if (isIntersecting) {
           setHasAnimatedHowItWorks(true);
+          setIsAutoAnimating(true);
+          // Reset animation state when section comes into view
+          animationRef.current.currentIndex = 0;
+          animationRef.current.isAnimating = false;
+          animationRef.current.isExpanding = false;
+          if (animationRef.current.timeoutId) {
+            window.clearTimeout(animationRef.current.timeoutId);
+          }
         }
       },
       { threshold: 0.2 }
@@ -258,17 +317,25 @@ const Index = () => {
   };
 
   const handleHowItWorksCardClick = (idx: number) => {
-    // If clicking the same card that's already expanded, close it and resume animation
     if (expandedStep === idx) {
       setExpandedStep(null);
-      // Resume animation after a short delay
-      setTimeout(() => {
-        setIsAutoAnimating(true);
-      }, 500);
+      setIsAutoAnimating(true);
+      animationRef.current.currentIndex = idx;
+      animationRef.current.isAnimating = false;
+      animationRef.current.isExpanding = false;
+      if (animationRef.current.timeoutId) {
+        window.clearTimeout(animationRef.current.timeoutId);
+      }
     } else {
-      // Otherwise, expand the clicked card and pause animation
       setExpandedStep(idx);
       setIsAutoAnimating(false);
+      // Clear any ongoing animations
+      if (animationRef.current.frameId) {
+        cancelAnimationFrame(animationRef.current.frameId);
+      }
+      if (animationRef.current.timeoutId) {
+        window.clearTimeout(animationRef.current.timeoutId);
+      }
     }
   };
 
