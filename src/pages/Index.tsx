@@ -329,7 +329,7 @@ const Index = () => {
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">The smart way to manage shared subscriptions with transparency and security.</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up' : 'opacity-0 translate-y-10'} hover:scale-105 hover:shadow-2xl hover:border-blue-400 border-t-4 border-transparent`}>
+            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up' : ''} hover:scale-105 hover:shadow-2xl hover:border-blue-400 border-t-4 border-transparent`}>
               <CardHeader>
                 <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
                   <Users className="w-8 h-8 text-white" />
@@ -340,7 +340,7 @@ const Index = () => {
                 <CardDescription>Create and join subscription groups with simple invite codes. Manage members and track participation effortlessly.</CardDescription>
               </CardContent>
             </Card>
-            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up delay-50' : 'opacity-0 translate-y-10'} hover:scale-105 hover:shadow-2xl hover:border-green-400 border-t-4 border-transparent`}>
+            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up delay-50' : ''} hover:scale-105 hover:shadow-2xl hover:border-green-400 border-t-4 border-transparent`}>
               <CardHeader>
                 <div className="w-16 h-16 mx-auto bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
                   <DollarSign className="w-8 h-8 text-white" />
@@ -351,7 +351,7 @@ const Index = () => {
                 <CardDescription>Automatically calculate and track payments. Transparent cost breakdown with secure payment processing.</CardDescription>
               </CardContent>
             </Card>
-            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up delay-100' : 'opacity-0 translate-y-10'} hover:scale-105 hover:shadow-2xl hover:border-purple-400 border-t-4 border-transparent`}>
+            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up delay-100' : ''} hover:scale-105 hover:shadow-2xl hover:border-purple-400 border-t-4 border-transparent`}>
               <CardHeader>
                 <div className="w-16 h-16 mx-auto bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
                   <Shield className="w-8 h-8 text-white" />
@@ -362,7 +362,7 @@ const Index = () => {
                 <CardDescription>Bank-level security for all transactions. Your data is encrypted and never shared with third parties.</CardDescription>
               </CardContent>
             </Card>
-            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up delay-150' : 'opacity-0 translate-y-10'} hover:scale-105 hover:shadow-2xl hover:border-orange-400 border-t-4 border-transparent`}>
+            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up delay-150' : ''} hover:scale-105 hover:shadow-2xl hover:border-orange-400 border-t-4 border-transparent`}>
               <CardHeader>
                 <div className="w-16 h-16 mx-auto bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
                   <Smartphone className="w-8 h-8 text-white" />
@@ -383,10 +383,8 @@ const Index = () => {
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">Get started in just a few steps. Sharing subscriptions has never been easier!</p>
         </div>
         <div className="flex flex-col md:flex-row items-center justify-center gap-12 relative">
-          {/* Connecting line */}
-          <div className="hidden md:block absolute left-1/2 top-16 h-64 w-1 -translate-x-1/2 bg-gradient-to-b from-blue-400 via-purple-400 to-pink-400 rounded-full opacity-40"></div>
           {/* Steps */}
-          <div className={`flex-1 flex flex-col items-center md:items-end ${hasAnimatedHowItWorks ? 'animate-fade-in-left' : 'opacity-0 -translate-x-10'} transition-all duration-300`}>
+          <div className={`flex-1 flex flex-col items-center md:items-end ${hasAnimatedHowItWorks ? 'animate-fade-in-left' : ''} transition-all duration-300`}>
             <div className="bg-white/90 rounded-xl shadow-lg p-6 mb-8 border-t-4 border-blue-400 w-64">
               <div className="w-12 h-12 mx-auto bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-4">
                 <Users className="w-6 h-6 text-white" />
@@ -395,7 +393,7 @@ const Index = () => {
               <div className="text-gray-600">Start a new group or join an existing one with a simple invite code.</div>
             </div>
           </div>
-          <div className={`flex-1 flex flex-col items-center ${hasAnimatedHowItWorks ? 'animate-fade-in-up' : 'opacity-0 translate-y-10'} transition-all duration-300`}>
+          <div className={`flex-1 flex flex-col items-center ${hasAnimatedHowItWorks ? 'animate-fade-in-up' : ''} transition-all duration-300`}>
             <div className="bg-white/90 rounded-xl shadow-lg p-6 mb-8 border-t-4 border-green-400 w-64">
               <div className="w-12 h-12 mx-auto bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mb-4">
                 <DollarSign className="w-6 h-6 text-white" />
@@ -404,7 +402,7 @@ const Index = () => {
               <div className="text-gray-600">Easily manage payments and see a transparent breakdown for everyone.</div>
             </div>
           </div>
-          <div className={`flex-1 flex flex-col items-center md:items-start ${hasAnimatedHowItWorks ? 'animate-fade-in-right' : 'opacity-0 translate-x-10'} transition-all duration-300`}>
+          <div className={`flex-1 flex flex-col items-center md:items-start ${hasAnimatedHowItWorks ? 'animate-fade-in-right' : ''} transition-all duration-300`}>
             <div className="bg-white/90 rounded-xl shadow-lg p-6 mb-8 border-t-4 border-purple-400 w-64">
               <div className="w-12 h-12 mx-auto bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4">
                 <Shield className="w-6 h-6 text-white" />
