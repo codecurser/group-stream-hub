@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { User } from '@supabase/supabase-js';
 import { useToast } from "@/hooks/use-toast";
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 interface GroupChatModalProps {
   group: any;
@@ -21,63 +21,57 @@ interface GroupChatModalProps {
 const GroupChatModal = ({ group, user, isOpen, onClose }: GroupChatModalProps) => {
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   console.log('GroupChatModal props:', { group, user: user?.id, isOpen });
 
-  // Fetch chat messages with profile data using a separate query for profiles
+  // Fetch chat messages with pagination
   const { data: messages = [], error: messagesError, isLoading: messagesLoading } = useQuery({
-    queryKey: ['chat-messages', group?.id],
+    queryKey: ['chat-messages', group?.id, page],
     queryFn: async () => {
-      console.log('Fetching messages for group:', group?.id);
-      
-      if (!group?.id) {
-        console.log('No group ID provided');
-        return [];
-      }
+      if (!group?.id) return [];
 
-      // First, get the messages
+      const from = (page - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       const { data: messagesData, error: messagesError } = await supabase
         .from('chat_messages')
         .select('*')
         .eq('group_id', group.id)
-        .order('created_at', { ascending: true });
-      
-      if (messagesError) {
-        console.error('Error fetching messages:', messagesError);
-        throw messagesError;
-      }
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
-      if (!messagesData || messagesData.length === 0) {
-        console.log('No messages found');
-        return [];
-      }
+      if (messagesError) throw messagesError;
 
       // Get unique user IDs from messages
       const userIds = [...new Set(messagesData.map(msg => msg.user_id))];
       
       // Fetch profiles for these users
-      const { data: profilesData, error: profilesError } = await supabase
+      const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, full_name')
         .in('id', userIds);
 
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        // Continue without profile data
-      }
-
       // Combine messages with profile data
-      const messagesWithProfiles = messagesData.map(msg => ({
+      return messagesData.map(msg => ({
         ...msg,
         profiles: profilesData?.find(profile => profile.id === msg.user_id) || null
-      }));
-
-      console.log('Messages with profiles:', messagesWithProfiles);
-      return messagesWithProfiles;
+      })).reverse(); // Reverse to show oldest first
     },
-    enabled: isOpen && !!group?.id
+    enabled: isOpen && !!group?.id,
+    keepPreviousData: true
+  });
+
+  // Virtualization setup
+  const rowVirtualizer = useVirtualizer({
+    count: messages.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 80, // Estimated height of each message
+    overscan: 5
   });
 
   // Send message mutation
@@ -111,7 +105,7 @@ const GroupChatModal = ({ group, user, isOpen, onClose }: GroupChatModalProps) =
     onSuccess: (data) => {
       console.log('Message sent successfully:', data);
       setMessage('');
-      queryClient.invalidateQueries({ queryKey: ['chat-messages', group?.id] });
+      queryClient.invalidateQueries({ queryKey: ['chat-messages', group?.id, page] });
     },
     onError: (error) => {
       console.error('Send message error:', error);
@@ -123,46 +117,72 @@ const GroupChatModal = ({ group, user, isOpen, onClose }: GroupChatModalProps) =
     }
   });
 
-  // Set up real-time subscription for new messages
+  // Optimized real-time subscription
   useEffect(() => {
-    if (!isOpen || !group?.id) {
-      console.log('Skipping realtime setup - modal closed or no group ID');
-      return;
-    }
-
-    console.log('Setting up realtime subscription for group:', group.id);
+    if (!isOpen || !group?.id) return;
 
     const channel = supabase
       .channel(`chat-messages-${group.id}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'chat_messages',
           filter: `group_id=eq.${group.id}`
         },
         (payload) => {
-          console.log('Realtime message received:', payload);
-          queryClient.invalidateQueries({ queryKey: ['chat-messages', group.id] });
+          // Only invalidate the first page since new messages appear at the top
+          queryClient.invalidateQueries({ queryKey: ['chat-messages', group.id, 1] });
         }
       )
-      .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [isOpen, group?.id, queryClient]);
 
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
+  // Optimized auto-scroll
+  const scrollToBottom = useCallback(() => {
     if (messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages.length]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [scrollToBottom]);
+
+  // Memoized message rendering
+  const renderMessage = useCallback((msg: any) => (
+    <div
+      key={msg.id}
+      className={`flex ${msg.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
+    >
+      <Card 
+        className={`max-w-xs ${
+          msg.user_id === user?.id 
+            ? 'bg-blue-600 text-white' 
+            : 'bg-white'
+        }`}
+      >
+        <CardContent className="p-3">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-medium">
+              {getUserName(msg)}
+            </span>
+            <span className={`text-xs ${
+              msg.user_id === user?.id ? 'text-blue-100' : 'text-gray-500'
+            }`}>
+              {formatTime(msg.created_at)}
+            </span>
+          </div>
+          <p className="text-sm">{msg.message}</p>
+        </CardContent>
+      </Card>
+    </div>
+  ), [user?.id]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -206,7 +226,6 @@ const GroupChatModal = ({ group, user, isOpen, onClose }: GroupChatModalProps) =
         </DialogHeader>
         
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Error display */}
           {messagesError && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
               <p className="text-red-700 text-sm">
@@ -215,8 +234,10 @@ const GroupChatModal = ({ group, user, isOpen, onClose }: GroupChatModalProps) =
             </div>
           )}
 
-          {/* Messages area */}
-          <div className="flex-1 overflow-y-auto space-y-3 p-4 bg-gray-50 rounded-lg">
+          <div 
+            ref={parentRef}
+            className="flex-1 overflow-y-auto space-y-3 p-4 bg-gray-50 rounded-lg"
+          >
             {messagesLoading ? (
               <div className="text-center text-gray-500 py-8">
                 <p>Loading messages...</p>
@@ -226,39 +247,32 @@ const GroupChatModal = ({ group, user, isOpen, onClose }: GroupChatModalProps) =
                 <p>No messages yet. Start the conversation!</p>
               </div>
             ) : (
-              messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
-                >
-                  <Card 
-                    className={`max-w-xs ${
-                      msg.user_id === user?.id 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-white'
-                    }`}
+              <div
+                style={{
+                  height: `${rowVirtualizer.getTotalSize()}px`,
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => (
+                  <div
+                    key={virtualRow.index}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
                   >
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-medium">
-                          {getUserName(msg)}
-                        </span>
-                        <span className={`text-xs ${
-                          msg.user_id === user?.id ? 'text-blue-100' : 'text-gray-500'
-                        }`}>
-                          {formatTime(msg.created_at)}
-                        </span>
-                      </div>
-                      <p className="text-sm">{msg.message}</p>
-                    </CardContent>
-                  </Card>
-                </div>
-              ))
+                    {renderMessage(messages[virtualRow.index])}
+                  </div>
+                ))}
+              </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Message input */}
           <form onSubmit={handleSendMessage} className="flex gap-2 mt-4">
             <Input
               value={message}
