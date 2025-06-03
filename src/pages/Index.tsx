@@ -142,19 +142,36 @@ const Index = () => {
   // Add continuous card animation
   useEffect(() => {
     let currentIndex = 0;
-    const interval = setInterval(() => {
+    let timeoutId: NodeJS.Timeout;
+    let intervalId: NodeJS.Timeout;
+
+    const startAnimation = () => {
       if (isAutoAnimating && howItWorksInView) {
         setExpandedStep(currentIndex);
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           if (isAutoAnimating) {
             setExpandedStep(null);
+            currentIndex = (currentIndex + 1) % 3;
           }
-        }, 2000); // Keep card open for 2 seconds
-        currentIndex = (currentIndex + 1) % 3; // Cycle through 0, 1, 2
+        }, 2000);
       }
-    }, 4000); // Total cycle time (2s open + 2s closed)
+    };
 
-    return () => clearInterval(interval);
+    // Initial animation
+    startAnimation();
+
+    // Set up interval for continuous animation
+    intervalId = setInterval(() => {
+      if (isAutoAnimating && howItWorksInView) {
+        startAnimation();
+      }
+    }, 4000);
+
+    // Cleanup function
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
+    };
   }, [isAutoAnimating, howItWorksInView]);
 
   // Intersection Observer for how it works section
@@ -247,7 +264,7 @@ const Index = () => {
       // Resume animation after a short delay
       setTimeout(() => {
         setIsAutoAnimating(true);
-      }, 1000);
+      }, 500);
     } else {
       // Otherwise, expand the clicked card and pause animation
       setExpandedStep(idx);
@@ -498,7 +515,7 @@ const Index = () => {
         </div>
       </section>
       {/* How It Works Section */}
-      <section id="how-it-works" ref={howItWorksRef} className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-indigo-50 to-purple-50 z-10 relative overflow-hidden">
+      <section ref={howItWorksRef} className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-purple-100 opacity-50 animate-pulse"></div>
         <div className="max-w-5xl mx-auto text-center mb-16 relative z-10">
           <h2 className="text-3xl md:text-4xl font-bold text-indigo-900 mb-4 animate-fade-in-up">How It Works</h2>
@@ -506,63 +523,55 @@ const Index = () => {
         </div>
         <div className="flex flex-col md:flex-row items-center justify-center gap-12 relative z-10">
           {/* Steps */}
-          <div className={`flex-1 flex flex-col items-center md:items-end ${hasAnimatedHowItWorks ? 'animate-fade-in-left' : ''} transition-all duration-300`}>
+          {[
+            {
+              icon: <Users className="w-7 h-7 text-white" />,
+              title: "Create or Join a Group",
+              description: "Start a new group or join an existing one with a simple invite code.",
+              details: "Invite friends with a code, manage group members, and keep everything organized in one place."
+            },
+            {
+              icon: <DollarSign className="w-7 h-7 text-white" />,
+              title: "Split the Cost",
+              description: "Easily manage payments and see a transparent breakdown for everyone.",
+              details: "Automatic payment calculations, reminders, and secure transactions for peace of mind."
+            },
+            {
+              icon: <Shield className="w-7 h-7 text-white" />,
+              title: "Enjoy Premium Content",
+              description: "Access your favorite services at a fraction of the price, securely and privately.",
+              details: "Get instant access to premium content and manage your subscriptions with ease."
+            }
+          ].map((step, idx) => (
             <div
-              className={`bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/50 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 animate-fade-in-up delay-200 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${expandedStep === 0 ? 'ring-2 ring-indigo-400 scale-105 shadow-2xl' : ''}`}
-              onClick={() => handleHowItWorksCardClick(0)}
+              key={idx}
+              className={`bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/50 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 cursor-pointer hover:shadow-xl transition-all duration-500 transform hover:-translate-y-1 ${
+                expandedStep === idx ? 'ring-2 ring-indigo-400 scale-105 shadow-2xl' : ''
+              }`}
+              onClick={() => handleHowItWorksCardClick(idx)}
             >
-              <div className={`w-14 h-14 mx-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 transition-transform duration-300 shadow-lg ${expandedStep === 0 ? 'scale-110 rotate-12' : ''}`}>
-                <Users className={`w-7 h-7 text-white transition-transform duration-300 ${expandedStep === 0 ? 'scale-110' : ''}`} />
+              <div className={`w-14 h-14 mx-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 shadow-lg ${
+                expandedStep === idx ? 'scale-110 rotate-12' : ''
+              }`}>
+                {step.icon}
               </div>
-              <div className="font-bold text-lg mb-2 bg-gradient-to-r from-indigo-900 to-purple-900 bg-clip-text text-transparent transition-colors duration-300">Create or Join a Group</div>
-              <div className="text-indigo-600/90 transition-colors duration-300">Start a new group or join an existing one with a simple invite code.</div>
+              <div className="font-bold text-lg mb-2 bg-gradient-to-r from-indigo-900 to-purple-900 bg-clip-text text-transparent transition-colors duration-300">
+                {step.title}
+              </div>
+              <div className="text-indigo-600/90 transition-colors duration-300">
+                {step.description}
+              </div>
               <div
-                className={`transition-all duration-500 ease-in-out ${expandedStep === 0 ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
+                className={`transition-all duration-500 ease-in-out overflow-hidden ${
+                  expandedStep === idx ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'
+                }`}
               >
                 <div className="text-sm text-indigo-700 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-lg p-4 border border-indigo-100/50 shadow-inner backdrop-blur-sm">
-                  Invite friends with a code, manage group members, and keep everything organized in one place.
+                  {step.details}
                 </div>
               </div>
             </div>
-          </div>
-          <div className={`flex-1 flex flex-col items-center ${hasAnimatedHowItWorks ? 'animate-fade-in-up' : ''} transition-all duration-300`}>
-            <div
-              className={`bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/50 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 animate-fade-in-up delay-300 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${expandedStep === 1 ? 'ring-2 ring-indigo-400 scale-105 shadow-2xl' : ''}`}
-              onClick={() => handleHowItWorksCardClick(1)}
-            >
-              <div className={`w-14 h-14 mx-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 transition-transform duration-300 shadow-lg ${expandedStep === 1 ? 'scale-110 rotate-12' : ''}`}>
-                <DollarSign className={`w-7 h-7 text-white transition-transform duration-300 ${expandedStep === 1 ? 'scale-110' : ''}`} />
-              </div>
-              <div className="font-bold text-lg mb-2 bg-gradient-to-r from-indigo-900 to-purple-900 bg-clip-text text-transparent transition-colors duration-300">Split the Cost</div>
-              <div className="text-indigo-600/90 transition-colors duration-300">Easily manage payments and see a transparent breakdown for everyone.</div>
-              <div
-                className={`transition-all duration-500 ease-in-out ${expandedStep === 1 ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
-              >
-                <div className="text-sm text-indigo-700 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-lg p-4 border border-indigo-100/50 shadow-inner backdrop-blur-sm">
-                  Automatic payment calculations, reminders, and secure transactions for peace of mind.
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className={`flex-1 flex flex-col items-center md:items-start ${hasAnimatedHowItWorks ? 'animate-fade-in-right' : ''} transition-all duration-300`}>
-            <div
-              className={`bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/50 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 animate-fade-in-up delay-400 cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${expandedStep === 2 ? 'ring-2 ring-indigo-400 scale-105 shadow-2xl' : ''}`}
-              onClick={() => handleHowItWorksCardClick(2)}
-            >
-              <div className={`w-14 h-14 mx-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 transition-transform duration-300 shadow-lg ${expandedStep === 2 ? 'scale-110 rotate-12' : ''}`}>
-                <Shield className={`w-7 h-7 text-white transition-transform duration-300 ${expandedStep === 2 ? 'scale-110' : ''}`} />
-              </div>
-              <div className="font-bold text-lg mb-2 bg-gradient-to-r from-indigo-900 to-purple-900 bg-clip-text text-transparent transition-colors duration-300">Enjoy Premium Content</div>
-              <div className="text-indigo-600/90 transition-colors duration-300">Access your favorite services at a fraction of the price, securely and privately.</div>
-              <div
-                className={`transition-all duration-500 ease-in-out ${expandedStep === 2 ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
-              >
-                <div className="text-sm text-indigo-700 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-lg p-4 border border-indigo-100/50 shadow-inner backdrop-blur-sm">
-                  Get instant access to premium content and manage your subscriptions with ease.
-                </div>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
       {/* Testimonial Section */}
