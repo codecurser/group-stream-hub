@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, DollarSign, Shield, Smartphone } from "lucide-react";
+import { Users, DollarSign, Shield, Smartphone, GraduationCap, MapPin, Code2 } from "lucide-react";
 import AuthModal from "@/components/AuthModal";
 import Dashboard from "@/components/Dashboard";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,6 +62,7 @@ const Index = () => {
   });
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [isAutoSliding, setIsAutoSliding] = useState(true);
+  const [showAboutModal, setShowAboutModal] = useState(false);
 
   const testimonials = [
     {
@@ -168,32 +169,33 @@ const Index = () => {
 
   // Main animation control
   useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout;
+
     const cycleCards = () => {
       if (!isAutoAnimating) return;
 
       // First collapse current card
       setExpandedStep(null);
 
-      // After collapse, move to next card
-      animationRef.current.timer = setTimeout(() => {
+      // After collapse, move to next card with delay
+      timeoutId = setTimeout(() => {
         if (!isAutoAnimating) return;
         animationRef.current.currentIndex = (animationRef.current.currentIndex + 1) % 3;
         setExpandedStep(animationRef.current.currentIndex);
       }, 500);
     };
 
-    // Start animation cycle
+    // Start animation cycle with longer interval
     if (isAutoAnimating) {
-      const interval = setInterval(cycleCards, 4000);
-      animationRef.current.timer = interval;
+      intervalId = setInterval(cycleCards, 6000);
+      animationRef.current.timer = intervalId;
     }
 
     // Cleanup
     return () => {
-      if (animationRef.current.timer) {
-        clearInterval(animationRef.current.timer);
-        clearTimeout(animationRef.current.timer);
-      }
+      if (intervalId) clearInterval(intervalId);
+      if (timeoutId) clearTimeout(timeoutId);
     };
   }, [isAutoAnimating]);
 
@@ -209,7 +211,6 @@ const Index = () => {
           setExpandedStep(null);
           if (animationRef.current.timer) {
             clearInterval(animationRef.current.timer);
-            clearTimeout(animationRef.current.timer);
           }
         }
       },
@@ -293,19 +294,23 @@ const Index = () => {
 
   const handleHowItWorksCardClick = (idx: number) => {
     if (expandedStep === idx) {
-      // Resume animation
-      setIsAutoAnimating(true);
-      if (animationRef.current.timer) {
-        clearInterval(animationRef.current.timer);
-        clearTimeout(animationRef.current.timer);
-      }
+      // Add delay before closing
+      const timeoutId = setTimeout(() => {
+        // Resume animation
+        setIsAutoAnimating(true);
+        if (animationRef.current.timer) {
+          clearInterval(animationRef.current.timer);
+        }
+      }, 2000); // 2 second delay after typing completes
+
+      // Cleanup timeout on unmount
+      return () => clearTimeout(timeoutId);
     } else {
       // Pause animation and expand clicked card
       setExpandedStep(idx);
       setIsAutoAnimating(false);
       if (animationRef.current.timer) {
         clearInterval(animationRef.current.timer);
-        clearTimeout(animationRef.current.timer);
       }
     }
   };
@@ -417,6 +422,7 @@ const Index = () => {
           </div>
           <div className="flex items-center space-x-4">
             <a href="#how-it-works" className="text-gray-700 font-medium px-3 py-2 rounded transition-colors hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400" onClick={(e) => { e.preventDefault(); scrollToHowItWorks(); }}>How it Works</a>
+            <Button variant="ghost" onClick={() => setShowAboutModal(true)} className="text-gray-700 hover:text-blue-600">About Us</Button>
             <Button variant="ghost" onClick={() => setShowAuthModal(true)} aria-label="Sign In">Sign In</Button>
             <Button onClick={() => setShowAuthModal(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-400" aria-label="Get Started">Get Started</Button>
           </div>
@@ -442,12 +448,24 @@ const Index = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start animate-fade-in-up" style={{animationDelay: '0.4s'}}>
               <Button size="lg" onClick={() => setShowAuthModal(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-3 shadow-xl transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-400 animate-pulse-once">Start Sharing Now</Button>
-              <Button size="lg" variant="outline" className="text-lg px-8 py-3 border-2 hover:border-blue-400 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400" onClick={() => featuresRef.current?.scrollIntoView({ behavior: 'smooth' })}>Learn More</Button>
+              <Button 
+                variant="outline" 
+                size="lg"
+                className="border-2 border-white/50 text-white hover:bg-white/20 text-lg px-8 py-6 font-semibold transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 min-w-[200px] relative overflow-hidden group bg-white/5 backdrop-blur-sm"
+              >
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  Learn More
+                  <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </Button>
             </div>
           </div>
           <div className="flex-1 flex flex-col items-center justify-center md:justify-end relative min-h-[340px]">
-            {/* Blurred circular background */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] md:w-[380px] md:h-[380px] rounded-full bg-gradient-to-br from-blue-100 via-purple-100 to-white/80 blur-2xl opacity-70 z-0"></div>
+            {/* Blurred curved background */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] md:w-[380px] md:h-[380px] rounded-[70%_30%_40%_60%/30%_70%_60%_40%] bg-gradient-to-br from-blue-100 via-purple-100 to-white/80 blur-2xl opacity-70 z-0 animate-float-slow"></div>
             {/* Ken Burns + crossfade image */}
             <div className="relative w-[220px] h-[220px] md:w-[340px] md:h-[340px] flex items-center justify-center overflow-hidden">
               <img
@@ -501,9 +519,9 @@ const Index = () => {
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">The smart way to manage shared subscriptions with transparency and security.</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up' : ''} hover:scale-105 hover:shadow-2xl hover:border-blue-400 border-t-4 border-transparent`}>
+            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up' : ''} hover:shadow-2xl hover:border-blue-400 border-t-4 border-transparent group hover:animate-glow-card`}>
               <CardHeader>
-                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:shadow-blue-200/50 transition-all duration-500">
                   <Users className="w-8 h-8 text-white" />
                 </div>
                 <CardTitle>Easy Group Management</CardTitle>
@@ -512,9 +530,9 @@ const Index = () => {
                 <CardDescription>Create and join subscription groups with simple invite codes. Manage members and track participation effortlessly.</CardDescription>
               </CardContent>
             </Card>
-            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up delay-50' : ''} hover:scale-105 hover:shadow-2xl hover:border-green-400 border-t-4 border-transparent`}>
+            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up delay-50' : ''} hover:shadow-2xl hover:border-green-400 border-t-4 border-transparent group hover:animate-glow-card`}>
               <CardHeader>
-                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:shadow-green-200/50 transition-all duration-500">
                   <DollarSign className="w-8 h-8 text-white" />
                 </div>
                 <CardTitle>Smart Payment Splitting</CardTitle>
@@ -523,9 +541,9 @@ const Index = () => {
                 <CardDescription>Automatically calculate and track payments. Transparent cost breakdown with secure payment processing.</CardDescription>
               </CardContent>
             </Card>
-            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up delay-100' : ''} hover:scale-105 hover:shadow-2xl hover:border-purple-400 border-t-4 border-transparent`}>
+            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up delay-100' : ''} hover:shadow-2xl hover:border-purple-400 border-t-4 border-transparent group hover:animate-glow-card`}>
               <CardHeader>
-                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:shadow-purple-200/50 transition-all duration-500">
                   <Shield className="w-8 h-8 text-white" />
                 </div>
                 <CardTitle>Secure & Private</CardTitle>
@@ -534,9 +552,9 @@ const Index = () => {
                 <CardDescription>Bank-level security for all transactions. Your data is encrypted and never shared with third parties.</CardDescription>
               </CardContent>
             </Card>
-            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up delay-150' : ''} hover:scale-105 hover:shadow-2xl hover:border-orange-400 border-t-4 border-transparent`}>
+            <Card className={`text-center transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm ${hasAnimatedFeatures ? 'animate-fade-in-up delay-150' : ''} hover:shadow-2xl hover:border-orange-400 border-t-4 border-transparent group hover:animate-glow-card`}>
               <CardHeader>
-                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:shadow-orange-200/50 transition-all duration-500">
                   <Smartphone className="w-8 h-8 text-white" />
                 </div>
                 <CardTitle>Mobile Friendly</CardTitle>
@@ -550,12 +568,18 @@ const Index = () => {
       </section>
       {/* How It Works Section */}
       <section ref={howItWorksRef} className="relative py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-purple-100 opacity-50 animate-pulse"></div>
+        {/* Enhanced background with multiple gradients */}
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-100 via-indigo-100 to-purple-100 opacity-70"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/50 via-transparent to-transparent"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-100/30 via-transparent to-transparent"></div>
+        </div>
+
         <div className="max-w-5xl mx-auto text-center mb-16 relative z-10">
           <h2 className="text-3xl md:text-4xl font-bold text-indigo-900 mb-4 animate-fade-in-up">How It Works</h2>
           <p className="text-xl text-indigo-600 max-w-2xl mx-auto animate-fade-in-up delay-100">Get started in just a few steps. Sharing subscriptions has never been easier!</p>
         </div>
-        <div className="flex flex-col md:flex-row items-center justify-center gap-12 relative z-10">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-16 relative z-10 px-4">
           {/* Steps */}
           {[
             {
@@ -579,31 +603,59 @@ const Index = () => {
           ].map((step, idx) => (
             <div
               key={idx}
-              className={`bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/50 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 cursor-pointer hover:shadow-xl transition-all duration-700 ease-in-out transform hover:-translate-y-1 ${
-                expandedStep === idx ? 'ring-2 ring-indigo-400 scale-105 shadow-2xl' : ''
+              className={`relative bg-gradient-to-br from-white via-violet-50/50 to-indigo-50/50 backdrop-blur-sm rounded-2xl shadow-lg p-10 mb-8 border-t-4 ${
+                idx === 0 ? 'border-blue-400' : idx === 1 ? 'border-purple-400' : 'border-indigo-400'
+              } w-80 cursor-pointer hover:shadow-2xl transition-all duration-700 ease-in-out group ${
+                expandedStep === idx ? 'ring-2 ring-violet-400 shadow-2xl scale-105' : ''
               }`}
               onClick={() => handleHowItWorksCardClick(idx)}
             >
-              <div className={`w-14 h-14 mx-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 transition-all duration-700 ease-in-out ${
-                expandedStep === idx ? 'scale-110 rotate-12' : ''
+              {/* Enhanced decorative background elements */}
+              <div className="absolute inset-0 bg-gradient-to-br from-violet-50/30 to-indigo-50/30 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute -inset-0.5 bg-gradient-to-br from-violet-400/20 to-indigo-400/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              
+              {/* Enhanced icon container */}
+              <div className={`relative z-10 w-20 h-20 mx-auto bg-gradient-to-br ${
+                idx === 0 ? 'from-blue-500 via-indigo-500 to-purple-500' :
+                idx === 1 ? 'from-purple-500 via-indigo-500 to-blue-500' :
+                'from-indigo-500 via-blue-500 to-purple-500'
+              } rounded-2xl flex items-center justify-center mb-8 transition-all duration-700 ease-in-out shadow-lg group-hover:scale-110 ${
+                expandedStep === idx ? 'scale-110' : ''
               }`}>
                 {step.icon}
               </div>
-              <div className="font-bold text-lg mb-2 bg-gradient-to-r from-indigo-900 to-purple-900 bg-clip-text text-transparent transition-colors duration-700">
-                {step.title}
-              </div>
-              <div className="text-indigo-600/90 transition-colors duration-700">
-                {step.description}
-              </div>
-              <div
-                className={`transition-all duration-700 ease-in-out overflow-hidden ${
-                  expandedStep === idx ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'
-                }`}
-              >
-                <div className="text-sm text-indigo-700 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-lg p-4 border border-indigo-100/50 shadow-inner backdrop-blur-sm">
-                  {step.details}
+              
+              <div className="relative z-10">
+                <div className={`font-bold text-2xl mb-4 bg-gradient-to-r ${
+                  idx === 0 ? 'from-blue-600 to-indigo-600' :
+                  idx === 1 ? 'from-purple-600 to-indigo-600' :
+                  'from-indigo-600 to-blue-600'
+                } bg-clip-text text-transparent transition-colors duration-700`}>
+                  {step.title}
+                </div>
+                <div className="text-violet-600/90 text-lg leading-relaxed transition-colors duration-700 mb-6">
+                  {step.description}
+                </div>
+                <div
+                  className={`transition-all duration-700 ease-in-out overflow-hidden ${
+                    expandedStep === idx ? 'max-h-48 mt-6 opacity-100' : 'max-h-0 opacity-0'
+                  }`}
+                >
+                  <div className={`text-base text-violet-700 bg-gradient-to-br ${
+                    idx === 0 ? 'from-blue-50 via-indigo-50 to-purple-50' :
+                    idx === 1 ? 'from-purple-50 via-indigo-50 to-blue-50' :
+                    'from-indigo-50 via-blue-50 to-purple-50'
+                  } rounded-xl p-6 border border-violet-100/50 shadow-inner backdrop-blur-sm`}>
+                    <div className={`${expandedStep === idx ? 'text-animation' : ''}`}>
+                      {step.details}
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* Enhanced hover effects */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/0 via-white/0 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl"></div>
+              <div className="absolute -inset-0.5 bg-gradient-to-br from-violet-400/0 via-indigo-400/0 to-purple-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl blur"></div>
             </div>
           ))}
         </div>
@@ -738,38 +790,347 @@ const Index = () => {
         </div>
       </section>
       {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <Card className="border-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-xl animate-glow-border">
-            <CardContent className="p-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Start Saving?</h2>
-              <p className="text-xl mb-8 opacity-90">Join thousands of users who are already sharing subscriptions and saving money.</p>
-              <Button size="lg" onClick={() => setShowAuthModal(true)} className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-3 font-semibold shadow-lg transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-400 animate-pulse-once">Create Your First Group</Button>
-            </CardContent>
-          </Card>
+      <section className="py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Enhanced background decorative elements */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 opacity-70"></div>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-float-slow"></div>
+          <div className="absolute bottom-0 right-1/2 translate-x-1/2 w-[500px] h-[500px] bg-gradient-to-br from-indigo-400/20 to-pink-400/20 rounded-full blur-3xl animate-float-medium"></div>
+          <div className="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-gradient-to-br from-blue-300/10 to-purple-300/10 rounded-full blur-2xl animate-float-fast"></div>
+        </div>
+
+        <div className="max-w-4xl mx-auto text-center relative">
+          <div className="rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white shadow-2xl overflow-hidden relative group">
+            {/* Enhanced animated border gradient */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-400/30 via-purple-400/30 to-indigo-400/30 animate-gradient-x"></div>
+            
+            {/* Animated shine effect */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shine"></div>
+            </div>
+            
+            {/* Content */}
+            <div className="relative p-12 md:p-16">
+              {/* Enhanced decorative elements */}
+              <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+                <div className="absolute -top-24 -left-24 w-48 h-48 bg-white/10 rounded-full blur-2xl animate-float-slow"></div>
+                <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-white/10 rounded-full blur-2xl animate-float-medium"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl animate-pulse-slow"></div>
+              </div>
+
+              <div className="relative z-10">
+                <h2 className="text-3xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-white via-blue-50 to-white bg-clip-text text-transparent animate-gradient-x">
+                  Ready to Start Saving?
+                </h2>
+                <p className="text-xl md:text-2xl mb-10 text-blue-50/90 max-w-2xl mx-auto leading-relaxed">
+                  Join thousands of users who are already sharing subscriptions and saving money.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                  <Button 
+                    size="lg" 
+                    onClick={() => setShowAuthModal(true)} 
+                    className="bg-white text-blue-600 hover:bg-blue-50 text-lg px-8 py-6 font-semibold shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-white/50 animate-pulse-once min-w-[200px] relative overflow-hidden group"
+                  >
+                    <span className="relative z-10">Create Your First Group</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="lg"
+                    className="border-2 border-white/50 text-white hover:bg-white/20 text-lg px-8 py-6 font-semibold transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/50 min-w-[200px] relative overflow-hidden group bg-white/5 backdrop-blur-sm"
+                  >
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      Learn More
+                      <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
       {/* Footer */}
-      <footer className="bg-white/60 backdrop-blur-lg border-t py-8 px-4 sm:px-6 lg:px-8 text-center shadow-inner animate-fade-in-up">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 mb-2 md:mb-0">
-            <img src="/images/Untitled design (1).png" alt="PlayForm Logo" width={28} height={28} className="rounded" />
-            <span className="font-bold text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">PlayForm</span>
+      <footer className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-t py-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-1/2 translate-x-1/2 w-[400px] h-[400px] bg-gradient-to-br from-indigo-400/10 to-pink-400/10 rounded-full blur-3xl"></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto relative">
+          {/* Main Footer Content */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            {/* Brand Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 group">
+                <div className="relative">
+                  <img src="/images/Untitled design (1).png" alt="PlayForm Logo" width={36} height={36} className="rounded shadow-lg transition-transform duration-300 group-hover:scale-110" />
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg blur opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
+                </div>
+                <span className="font-bold text-xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent group-hover:from-blue-500 group-hover:to-purple-500 transition-all duration-300">PlayForm</span>
+              </div>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Making subscription sharing simple, secure, and fair for everyone. Join our community today.
+              </p>
+              <div className="flex gap-4">
+                <a href="#" aria-label="Twitter" className="w-10 h-10 rounded-full bg-white/80 shadow-sm flex items-center justify-center text-gray-600 hover:text-blue-500 hover:shadow-md transition-all duration-300 hover:scale-110 hover:bg-blue-50">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557a9.93 9.93 0 0 1-2.828.775 4.932 4.932 0 0 0 2.165-2.724c-.951.564-2.005.974-3.127 1.195A4.916 4.916 0 0 0 16.616 3c-2.72 0-4.924 2.206-4.924 4.924 0 .386.044.763.127 1.124C7.728 8.807 4.1 6.884 1.671 3.965c-.423.724-.666 1.562-.666 2.475 0 1.708.87 3.216 2.188 4.099a4.904 4.904 0 0 1-2.229-.616c-.054 2.281 1.581 4.415 3.949 4.89a4.936 4.936 0 0 1-2.224.084c.627 1.956 2.444 3.377 4.6 3.417A9.867 9.867 0 0 1 0 21.543a13.94 13.94 0 0 0 7.548 2.212c9.057 0 14.009-7.513 14.009-14.009 0-.213-.005-.425-.014-.636A10.012 10.012 0 0 0 24 4.557z"/></svg>
+                </a>
+                <a href="#" aria-label="LinkedIn" className="w-10 h-10 rounded-full bg-white/80 shadow-sm flex items-center justify-center text-gray-600 hover:text-blue-700 hover:shadow-md transition-all duration-300 hover:scale-110 hover:bg-blue-50">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                </a>
+                <a href="#" aria-label="Instagram" className="w-10 h-10 rounded-full bg-white/80 shadow-sm flex items-center justify-center text-gray-600 hover:text-pink-600 hover:shadow-md transition-all duration-300 hover:scale-110 hover:bg-pink-50">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                </a>
+              </div>
+            </div>
+
+            {/* Quick Links */}
+            <div>
+              <ul className="space-y-3">
+                <li>
+                  <button 
+                    onClick={() => setShowAboutModal(true)} 
+                    className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    About Us
+                  </button>
+                </li>
+                <li>
+                  <a href="#how-it-works" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    How It Works
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    Features
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    Pricing
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <ul className="space-y-3">
+                <li>
+                  <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    Privacy Policy
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    Terms of Service
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    Cookie Policy
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    GDPR
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <ul className="space-y-3">
+                <li>
+                  <a href="mailto:aryansharma35x@gmail.com" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
+                    <svg className="w-4 h-4 text-blue-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <span className="group-hover:translate-x-1 transition-transform">aryansharma35x@gmail.com</span>
+                  </a>
+                </li>
+                <li className="text-gray-600 text-sm flex items-center gap-2 group">
+                  <svg className="w-4 h-4 text-blue-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="group-hover:translate-x-1 transition-transform">Sharda University, Greater Noida</span>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div className="flex gap-6 text-gray-600 text-sm">
-            <a href="#" className="hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400">About</a>
-            <a href="#" className="hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400">Privacy</a>
-            <a href="#" className="hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400">Terms</a>
-            <a href="#" className="hover:text-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400">Contact</a>
-          </div>
-          <div className="flex gap-4">
-            <a href="#" aria-label="Twitter" className="hover:text-blue-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557a9.93 9.93 0 0 1-2.828.775 4.932 4.932 0 0 0 2.165-2.724c-.951.564-2.005.974-3.127 1.195A4.916 4.916 0 0 0 16.616 3c-2.72 0-4.924 2.206-4.924 4.924 0 .386.044.763.127 1.124C7.728 8.807 4.1 6.884 1.671 3.965c-.423.724-.666 1.562-.666 2.475 0 1.708.87 3.216 2.188 4.099a4.904 4.904 0 0 1-2.229-.616c-.054 2.281 1.581 4.415 3.949 4.89a4.936 4.936 0 0 1-2.224.084c.627 1.956 2.444 3.377 4.6 3.417A9.867 9.867 0 0 1 0 21.543a13.94 13.94 0 0 0 7.548 2.212c9.057 0 14.009-7.513 14.009-14.009 0-.213-.005-.425-.014-.636A10.012 10.012 0 0 0 24 4.557z"/></svg></a>
-            <a href="#" aria-label="GitHub" className="hover:text-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.484 2 12.021c0 4.428 2.865 8.184 6.839 9.504.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.157-1.11-1.465-1.11-1.465-.908-.62.069-.608.069-.608 1.004.07 1.532 1.032 1.532 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.339-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.025A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.295 2.748-1.025 2.748-1.025.546 1.378.202 2.397.1 2.65.64.7 1.028 1.595 1.028 2.688 0 3.847-2.338 4.695-4.566 4.944.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.749 0 .267.18.578.688.48A10.025 10.025 0 0 0 22 12.021C22 6.484 17.523 2 12 2z"/></svg></a>
+
+          {/* Bottom Bar */}
+          <div className="pt-8 border-t border-gray-200">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-sm text-gray-500">
+                &copy; {new Date().getFullYear()} PlayForm. All rights reserved.
+              </p>
+              <div className="flex gap-6">
+                <a href="#" className="text-sm text-gray-500 hover:text-blue-600 transition-colors hover:scale-105 inline-block">Privacy</a>
+                <a href="#" className="text-sm text-gray-500 hover:text-blue-600 transition-colors hover:scale-105 inline-block">Terms</a>
+                <a href="#" className="text-sm text-gray-500 hover:text-blue-600 transition-colors hover:scale-105 inline-block">Cookies</a>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="mt-4 text-xs text-gray-400">&copy; {new Date().getFullYear()} PlayForm. All rights reserved.</div>
       </footer>
       <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      {/* About Modal */}
+      {showAboutModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-8">
+              <div className="flex justify-between items-start mb-6">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">About PlayForm</h2>
+                <Button variant="ghost" onClick={() => setShowAboutModal(false)} className="text-gray-500 hover:text-gray-700">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </Button>
+              </div>
+
+              <div className="space-y-8">
+                {/* Project Overview */}
+                <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Project Overview</h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    PlayForm is a B.Tech project developed by students at Sharda University. 
+                    Our mission is to make subscription sharing simple, secure, and fair for everyone.
+                  </p>
+                </div>
+
+                {/* Team Section */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-blue-100">
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                          <GraduationCap className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-gray-900">B.Tech Students</CardTitle>
+                          <CardDescription>Sharda University</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-600">
+                        We are a team of passionate B.Tech students from Sharda University working on innovative solutions to everyday problems.
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-blue-100">
+                    <CardHeader>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                          <MapPin className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-gray-900">Location</CardTitle>
+                          <CardDescription>Greater Noida, Uttar Pradesh</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-600">
+                        Based in the heart of Greater Noida at Sharda University, we're part of a vibrant tech community.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Project Vision */}
+                <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Our Vision</h3>
+                  <p className="text-gray-600 leading-relaxed mb-4">
+                    At PlayForm, we envision a world where premium digital content is accessible to everyone. 
+                    Our platform makes it possible for people to enjoy their favorite streaming services without 
+                    breaking the bank, while maintaining security and transparency.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                      <h4 className="font-medium text-gray-900 mb-2">Mission</h4>
+                      <p className="text-gray-600 text-sm">
+                        To revolutionize subscription sharing by making it simple, secure, and fair for everyone.
+                      </p>
+                    </div>
+                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                      <h4 className="font-medium text-gray-900 mb-2">Values</h4>
+                      <p className="text-gray-600 text-sm">
+                        Innovation, transparency, and user-centric design drive everything we do.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Future Plans */}
+                <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Future Plans</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                      <h4 className="font-medium text-gray-900 mb-2">Expansion</h4>
+                      <p className="text-gray-600 text-sm">
+                        Adding support for more streaming platforms and subscription services.
+                      </p>
+                    </div>
+                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                      <h4 className="font-medium text-gray-900 mb-2">Features</h4>
+                      <p className="text-gray-600 text-sm">
+                        Introducing advanced group management and payment tracking features.
+                      </p>
+                    </div>
+                    <div className="bg-white/80 rounded-lg p-4 shadow-sm">
+                      <h4 className="font-medium text-gray-900 mb-2">Community</h4>
+                      <p className="text-gray-600 text-sm">
+                        Building a strong community of users and implementing feedback-driven improvements.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Section */}
+                <div className="text-center space-y-4">
+                  <div className="bg-white/80 rounded-xl p-6 border border-blue-100 shadow-sm">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Get in Touch</h3>
+                    <p className="text-gray-600 mb-4">Have questions or want to collaborate? Reach out to us!</p>
+                    <div className="flex items-center justify-center gap-2 text-blue-600 font-medium">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <a href="mailto:aryansharma35x@gmail.com" className="hover:text-blue-700 transition-colors">
+                        aryansharma35x@gmail.com
+                      </a>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="border-2 border-blue-200 text-blue-600 hover:bg-blue-50"
+                    onClick={() => window.location.href = 'mailto:aryansharma35x@gmail.com'}
+                  >
+                    Send us an Email
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -839,6 +1200,67 @@ style.innerHTML = `
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  @keyframes glow-card {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.2); }
+    50% { box-shadow: 0 0 20px 4px rgba(99,102,241,0.3); }
+  }
+  .animate-glow-card { animation: glow-card 2s ease-in-out infinite; }
+  @keyframes gradient-x {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  @keyframes shine {
+    0% { transform: translateX(-100%) rotate(45deg); }
+    100% { transform: translateX(100%) rotate(45deg); }
+  }
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.05); }
+  }
+  .animate-gradient-x {
+    animation: gradient-x 15s ease infinite;
+    background-size: 200% 200%;
+  }
+  .animate-shine {
+    animation: shine 3s ease-in-out infinite;
+  }
+  .animate-pulse-slow {
+    animation: pulse-slow 4s ease-in-out infinite;
+  }
+  @keyframes typewriter {
+    from { width: 0; }
+    to { width: 100%; }
+  }
+  @keyframes blink {
+    50% { border-color: transparent; }
+  }
+  .animate-typewriter {
+    display: inline-block;
+    overflow: hidden;
+    white-space: normal;
+    width: 100%;
+    animation: typewriter 4s steps(20, end) forwards;
+  }
+  .animate-typewriter::after {
+    content: '|';
+    animation: blink 0.7s infinite;
+    margin-left: 2px;
+  }
+  @keyframes fadeIn {
+    0% { 
+      opacity: 0; 
+      transform: translateY(10px);
+    }
+    100% { 
+      opacity: 1; 
+      transform: translateY(0);
+    }
+  }
+
+  .text-animation {
+    opacity: 0;
+    animation: fadeIn 0.5s ease-out forwards;
   }
 `;
 if (typeof document !== 'undefined' && !document.getElementById('playform-animations')) {
