@@ -9,14 +9,6 @@ import { User, Session } from '@supabase/supabase-js';
 import { useToast } from "@/hooks/use-toast";
 import { useRef } from 'react';
 
-// Floating icons for hero
-const floatingIcons = [
-  { src: '/placeholder.svg', alt: 'Netflix', style: 'top-8 left-8 animate-float-slow' },
-  { src: '/placeholder.svg', alt: 'Spotify', style: 'top-20 right-16 animate-float-medium' },
-  { src: '/placeholder.svg', alt: 'Disney+', style: 'bottom-12 left-24 animate-float-fast' },
-  { src: '/placeholder.svg', alt: 'Amazon', style: 'bottom-20 right-32 animate-float-slow' },
-];
-
 // Carousel brand logos (public SVG URLs)
 const heroImages = [
   {
@@ -61,10 +53,12 @@ const Index = () => {
   const [isAutoAnimating, setIsAutoAnimating] = useState(true);
   const animationRef = useRef<{
     currentIndex: number;
-    intervalId: NodeJS.Timeout | null;
+    timer: NodeJS.Timeout | null;
+    isInitialized: boolean;
   }>({
     currentIndex: 0,
-    intervalId: null
+    timer: null,
+    isInitialized: false
   });
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [isAutoSliding, setIsAutoSliding] = useState(true);
@@ -146,48 +140,62 @@ const Index = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Simplified animation control
+  // Initialize animation on mount
   useEffect(() => {
     const startAnimation = () => {
-      // Clear any existing interval
-      if (animationRef.current.intervalId) {
-        clearInterval(animationRef.current.intervalId);
-      }
-
-      // Start new animation cycle
-      animationRef.current.intervalId = setInterval(() => {
-        if (howItWorksInView && isAutoAnimating) {
-          // First collapse current card
-          setExpandedStep(null);
-          
-          // After collapse animation, move to next card
-          setTimeout(() => {
-            if (howItWorksInView && isAutoAnimating) {
-              animationRef.current.currentIndex = (animationRef.current.currentIndex + 1) % 3;
-              setExpandedStep(animationRef.current.currentIndex);
-            }
-          }, 500); // Wait for collapse animation
-        }
-      }, 4000); // Total cycle duration
+      const randomIndex = Math.floor(Math.random() * 3);
+      animationRef.current.currentIndex = randomIndex;
+      setExpandedStep(randomIndex);
+      setIsAutoAnimating(true);
     };
 
-    // Start animation if section is in view
-    if (howItWorksInView && isAutoAnimating) {
-      // Reset state
-      animationRef.current.currentIndex = 0;
-      setExpandedStep(0);
-      
-      // Start animation cycle
-      startAnimation();
+    // Start animation immediately
+    startAnimation();
+
+    // Handle visibility changes
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        startAnimation();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  // Main animation control
+  useEffect(() => {
+    const cycleCards = () => {
+      if (!isAutoAnimating) return;
+
+      // First collapse current card
+      setExpandedStep(null);
+
+      // After collapse, move to next card
+      animationRef.current.timer = setTimeout(() => {
+        if (!isAutoAnimating) return;
+        animationRef.current.currentIndex = (animationRef.current.currentIndex + 1) % 3;
+        setExpandedStep(animationRef.current.currentIndex);
+      }, 500);
+    };
+
+    // Start animation cycle
+    if (isAutoAnimating) {
+      const interval = setInterval(cycleCards, 4000);
+      animationRef.current.timer = interval;
     }
 
-    // Cleanup function
+    // Cleanup
     return () => {
-      if (animationRef.current.intervalId) {
-        clearInterval(animationRef.current.intervalId);
+      if (animationRef.current.timer) {
+        clearInterval(animationRef.current.timer);
+        clearTimeout(animationRef.current.timer);
       }
     };
-  }, [howItWorksInView, isAutoAnimating]);
+  }, [isAutoAnimating]);
 
   // Intersection Observer for how it works section
   useEffect(() => {
@@ -196,16 +204,22 @@ const Index = () => {
         const isIntersecting = entry.isIntersecting;
         setHowItWorksInView(isIntersecting);
         if (isIntersecting) {
-          setHasAnimatedHowItWorks(true);
           setIsAutoAnimating(true);
-          // Reset animation state
-          animationRef.current.currentIndex = 0;
-          setExpandedStep(0);
+        } else {
+          setExpandedStep(null);
+          if (animationRef.current.timer) {
+            clearInterval(animationRef.current.timer);
+            clearTimeout(animationRef.current.timer);
+          }
         }
       },
       { threshold: 0.2 }
     );
-    if (howItWorksRef.current) observer.observe(howItWorksRef.current);
+
+    if (howItWorksRef.current) {
+      observer.observe(howItWorksRef.current);
+    }
+
     return () => observer.disconnect();
   }, []);
 
@@ -279,14 +293,20 @@ const Index = () => {
 
   const handleHowItWorksCardClick = (idx: number) => {
     if (expandedStep === idx) {
-      // If clicking the same card, resume auto-animation
-      setExpandedStep(null);
+      // Resume animation
       setIsAutoAnimating(true);
-      animationRef.current.currentIndex = idx;
+      if (animationRef.current.timer) {
+        clearInterval(animationRef.current.timer);
+        clearTimeout(animationRef.current.timer);
+      }
     } else {
-      // If clicking a different card, pause auto-animation
+      // Pause animation and expand clicked card
       setExpandedStep(idx);
       setIsAutoAnimating(false);
+      if (animationRef.current.timer) {
+        clearInterval(animationRef.current.timer);
+        clearTimeout(animationRef.current.timer);
+      }
     }
   };
 
@@ -392,7 +412,7 @@ const Index = () => {
       <nav className="bg-white/60 backdrop-blur-lg border-b sticky top-0 z-50 shadow-lg transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
           <div className="flex items-center gap-2">
-            <img src="/placeholder.svg" alt="PlayForm Logo" width={36} height={36} className="rounded" />
+            <img src="/images/Untitled design (1).png" alt="PlayForm Logo" width={36} height={36} className="rounded" />
             <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">PlayForm</h1>
           </div>
           <div className="flex items-center space-x-4">
@@ -404,10 +424,6 @@ const Index = () => {
       </nav>
       {/* Hero Section */}
       <section className="relative pt-28 pb-36 px-4 sm:px-6 lg:px-8 z-10 overflow-hidden">
-        {/* Floating icons */}
-        {floatingIcons.map((icon, i) => (
-          <img key={i} src={icon.src} alt={icon.alt} width={48} height={48} className={`absolute ${icon.style} opacity-70`} style={{zIndex: 1}} />
-        ))}
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12 relative z-10">
           <div className="flex-1 text-center md:text-left">
             <div className="mb-2 text-lg text-blue-500 font-semibold tracking-wide animate-fade-in-up">Share More. Save More.</div>
@@ -563,24 +579,24 @@ const Index = () => {
           ].map((step, idx) => (
             <div
               key={idx}
-              className={`bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/50 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 cursor-pointer hover:shadow-xl transition-all duration-500 transform hover:-translate-y-1 ${
+              className={`bg-gradient-to-br from-white via-indigo-50/50 to-purple-50/50 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-8 border-t-4 border-indigo-400 w-64 cursor-pointer hover:shadow-xl transition-all duration-700 ease-in-out transform hover:-translate-y-1 ${
                 expandedStep === idx ? 'ring-2 ring-indigo-400 scale-105 shadow-2xl' : ''
               }`}
               onClick={() => handleHowItWorksCardClick(idx)}
             >
-              <div className={`w-14 h-14 mx-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 transition-all duration-500 ${
+              <div className={`w-14 h-14 mx-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 transition-all duration-700 ease-in-out ${
                 expandedStep === idx ? 'scale-110 rotate-12' : ''
               }`}>
                 {step.icon}
               </div>
-              <div className="font-bold text-lg mb-2 bg-gradient-to-r from-indigo-900 to-purple-900 bg-clip-text text-transparent transition-colors duration-300">
+              <div className="font-bold text-lg mb-2 bg-gradient-to-r from-indigo-900 to-purple-900 bg-clip-text text-transparent transition-colors duration-700">
                 {step.title}
               </div>
-              <div className="text-indigo-600/90 transition-colors duration-300">
+              <div className="text-indigo-600/90 transition-colors duration-700">
                 {step.description}
               </div>
               <div
-                className={`transition-all duration-500 ease-in-out overflow-hidden ${
+                className={`transition-all duration-700 ease-in-out overflow-hidden ${
                   expandedStep === idx ? 'max-h-40 mt-4 opacity-100' : 'max-h-0 opacity-0'
                 }`}
               >
@@ -737,7 +753,7 @@ const Index = () => {
       <footer className="bg-white/60 backdrop-blur-lg border-t py-8 px-4 sm:px-6 lg:px-8 text-center shadow-inner animate-fade-in-up">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 mb-2 md:mb-0">
-            <img src="/placeholder.svg" alt="PlayForm Logo" width={28} height={28} className="rounded" />
+            <img src="/images/Untitled design (1).png" alt="PlayForm Logo" width={28} height={28} className="rounded" />
             <span className="font-bold text-lg bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">PlayForm</span>
           </div>
           <div className="flex gap-6 text-gray-600 text-sm">
