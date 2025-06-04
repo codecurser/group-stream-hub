@@ -61,18 +61,10 @@ const Index = () => {
   const [isAutoAnimating, setIsAutoAnimating] = useState(true);
   const animationRef = useRef<{
     currentIndex: number;
-    lastUpdate: number;
-    frameId: number | null;
-    isAnimating: boolean;
-    timeoutId: number | null;
-    isExpanding: boolean;
+    intervalId: NodeJS.Timeout | null;
   }>({
     currentIndex: 0,
-    lastUpdate: 0,
-    frameId: null,
-    isAnimating: false,
-    timeoutId: null,
-    isExpanding: false
+    intervalId: null
   });
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [isAutoSliding, setIsAutoSliding] = useState(true);
@@ -154,72 +146,45 @@ const Index = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Animation control using requestAnimationFrame
+  // Simplified animation control
   useEffect(() => {
-    const ANIMATION_INTERVAL = 4000; // 4 seconds between transitions
-    const EXPAND_DURATION = 2000; // 2 seconds expanded state
-
-    const animate = (timestamp: number) => {
-      if (!howItWorksInView || !isAutoAnimating) {
-        animationRef.current.isAnimating = false;
-        return;
+    const startAnimation = () => {
+      // Clear any existing interval
+      if (animationRef.current.intervalId) {
+        clearInterval(animationRef.current.intervalId);
       }
 
-      // Initialize animation if not started
-      if (!animationRef.current.isAnimating) {
-        animationRef.current.lastUpdate = timestamp;
-        animationRef.current.isAnimating = true;
-        animationRef.current.isExpanding = true;
-        setExpandedStep(animationRef.current.currentIndex);
-      }
-
-      const elapsed = timestamp - animationRef.current.lastUpdate;
-
-      // Handle expansion and collapse phases
-      if (animationRef.current.isExpanding) {
-        if (elapsed >= EXPAND_DURATION) {
-          animationRef.current.isExpanding = false;
-          animationRef.current.lastUpdate = timestamp;
+      // Start new animation cycle
+      animationRef.current.intervalId = setInterval(() => {
+        if (howItWorksInView && isAutoAnimating) {
+          // First collapse current card
           setExpandedStep(null);
+          
+          // After collapse animation, move to next card
+          setTimeout(() => {
+            if (howItWorksInView && isAutoAnimating) {
+              animationRef.current.currentIndex = (animationRef.current.currentIndex + 1) % 3;
+              setExpandedStep(animationRef.current.currentIndex);
+            }
+          }, 500); // Wait for collapse animation
         }
-      } else {
-        if (elapsed >= ANIMATION_INTERVAL - EXPAND_DURATION) {
-          animationRef.current.currentIndex = (animationRef.current.currentIndex + 1) % 3;
-          animationRef.current.isExpanding = true;
-          animationRef.current.lastUpdate = timestamp;
-          setExpandedStep(animationRef.current.currentIndex);
-        }
-      }
-
-      animationRef.current.frameId = requestAnimationFrame(animate);
+      }, 4000); // Total cycle duration
     };
 
     // Start animation if section is in view
     if (howItWorksInView && isAutoAnimating) {
-      // Clear any existing animations
-      if (animationRef.current.frameId) {
-        cancelAnimationFrame(animationRef.current.frameId);
-      }
-      if (animationRef.current.timeoutId) {
-        window.clearTimeout(animationRef.current.timeoutId);
-      }
-      
-      // Reset animation state
+      // Reset state
       animationRef.current.currentIndex = 0;
-      animationRef.current.isAnimating = false;
-      animationRef.current.isExpanding = false;
+      setExpandedStep(0);
       
-      // Start new animation
-      animationRef.current.frameId = requestAnimationFrame(animate);
+      // Start animation cycle
+      startAnimation();
     }
 
     // Cleanup function
     return () => {
-      if (animationRef.current.frameId) {
-        cancelAnimationFrame(animationRef.current.frameId);
-      }
-      if (animationRef.current.timeoutId) {
-        window.clearTimeout(animationRef.current.timeoutId);
+      if (animationRef.current.intervalId) {
+        clearInterval(animationRef.current.intervalId);
       }
     };
   }, [howItWorksInView, isAutoAnimating]);
@@ -233,13 +198,9 @@ const Index = () => {
         if (isIntersecting) {
           setHasAnimatedHowItWorks(true);
           setIsAutoAnimating(true);
-          // Reset animation state when section comes into view
+          // Reset animation state
           animationRef.current.currentIndex = 0;
-          animationRef.current.isAnimating = false;
-          animationRef.current.isExpanding = false;
-          if (animationRef.current.timeoutId) {
-            window.clearTimeout(animationRef.current.timeoutId);
-          }
+          setExpandedStep(0);
         }
       },
       { threshold: 0.2 }
@@ -318,24 +279,14 @@ const Index = () => {
 
   const handleHowItWorksCardClick = (idx: number) => {
     if (expandedStep === idx) {
+      // If clicking the same card, resume auto-animation
       setExpandedStep(null);
       setIsAutoAnimating(true);
       animationRef.current.currentIndex = idx;
-      animationRef.current.isAnimating = false;
-      animationRef.current.isExpanding = false;
-      if (animationRef.current.timeoutId) {
-        window.clearTimeout(animationRef.current.timeoutId);
-      }
     } else {
+      // If clicking a different card, pause auto-animation
       setExpandedStep(idx);
       setIsAutoAnimating(false);
-      // Clear any ongoing animations
-      if (animationRef.current.frameId) {
-        cancelAnimationFrame(animationRef.current.frameId);
-      }
-      if (animationRef.current.timeoutId) {
-        window.clearTimeout(animationRef.current.timeoutId);
-      }
     }
   };
 
@@ -617,7 +568,7 @@ const Index = () => {
               }`}
               onClick={() => handleHowItWorksCardClick(idx)}
             >
-              <div className={`w-14 h-14 mx-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 shadow-lg ${
+              <div className={`w-14 h-14 mx-auto bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-full flex items-center justify-center mb-4 transition-all duration-500 ${
                 expandedStep === idx ? 'scale-110 rotate-12' : ''
               }`}>
                 {step.icon}
