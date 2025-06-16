@@ -47,14 +47,17 @@ const MarketplaceTab = ({ user }: MarketplaceTabProps) => {
         .from('marketplace_listings')
         .select(`
           *,
-          profiles!marketplace_listings_seller_id_fkey (full_name)
+          profiles (full_name)
         `)
         .eq('status', 'active')
         .gt('expire_at', new Date().toISOString())
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data || [];
+      return (data || []).map(item => ({
+        ...item,
+        profiles: item.profiles && !Array.isArray(item.profiles) ? item.profiles : null
+      })) as MarketplaceListing[];
     }
   });
 
