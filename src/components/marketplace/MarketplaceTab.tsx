@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,7 +47,7 @@ const MarketplaceTab = ({ user }: MarketplaceTabProps) => {
         .from('marketplace_listings')
         .select(`
           *,
-          profiles (full_name)
+          profiles!marketplace_listings_seller_id_fkey (full_name)
         `)
         .eq('status', 'active')
         .gt('expire_at', new Date().toISOString())
