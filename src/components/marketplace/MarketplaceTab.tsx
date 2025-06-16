@@ -27,6 +27,7 @@ interface MarketplaceListing {
   status: string;
   created_at: string;
   seller_id: string;
+  account_details: string | null;
   profiles?: {
     full_name: string | null;
   } | null;
