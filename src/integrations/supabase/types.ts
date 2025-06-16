@@ -115,6 +115,92 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_listings: {
+        Row: {
+          account_details: string | null
+          asking_price: number
+          created_at: string
+          description: string | null
+          expire_at: string
+          id: string
+          original_price: number
+          seller_id: string
+          software_name: string
+          status: string
+          subscription_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          account_details?: string | null
+          asking_price: number
+          created_at?: string
+          description?: string | null
+          expire_at: string
+          id?: string
+          original_price: number
+          seller_id: string
+          software_name: string
+          status?: string
+          subscription_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          account_details?: string | null
+          asking_price?: number
+          created_at?: string
+          description?: string | null
+          expire_at?: string
+          id?: string
+          original_price?: number
+          seller_id?: string
+          software_name?: string
+          status?: string
+          subscription_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marketplace_purchases: {
+        Row: {
+          buyer_id: string
+          id: string
+          listing_id: string
+          purchase_price: number
+          purchased_at: string
+          seller_id: string
+          status: string
+        }
+        Insert: {
+          buyer_id: string
+          id?: string
+          listing_id: string
+          purchase_price: number
+          purchased_at?: string
+          seller_id: string
+          status?: string
+        }
+        Update: {
+          buyer_id?: string
+          id?: string
+          listing_id?: string
+          purchase_price?: number
+          purchased_at?: string
+          seller_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_purchases_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string

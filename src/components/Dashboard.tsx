@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, LogOut, Copy, DollarSign, Calendar, MessageCircle, Crown, MapPin } from "lucide-react";
+import { Plus, Users, LogOut, Copy, DollarSign, Calendar, MessageCircle, Crown, MapPin, ShoppingBag } from "lucide-react";
 import CreateGroupModal from "@/components/CreateGroupModal";
 import JoinGroupModal from "@/components/JoinGroupModal";
 import GroupChatModal from "@/components/GroupChatModal";
+import MarketplaceTab from "@/components/marketplace/MarketplaceTab";
 import { useToast } from "@/hooks/use-toast";
 import { User } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
@@ -511,12 +512,16 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
 
         {/* Groups Section */}
         <Tabs defaultValue="my-groups" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-white/70 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-4 bg-white/70 backdrop-blur-sm">
             <TabsTrigger value="my-groups" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              My Groups ({userGroups.length})
+              My Groups
             </TabsTrigger>
             <TabsTrigger value="available-groups" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              Available Groups ({availableGroups.length})
+              Available Groups
+            </TabsTrigger>
+            <TabsTrigger value="marketplace" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <ShoppingBag className="w-4 h-4 mr-2" />
+              Marketplace
             </TabsTrigger>
             <TabsTrigger value="payments" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
               Payment History
@@ -586,6 +591,10 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
                 ))}
               </div>
             )}
+          </TabsContent>
+          
+          <TabsContent value="marketplace" className="mt-8">
+            <MarketplaceTab user={user} />
           </TabsContent>
           
           <TabsContent value="payments" className="mt-8">
