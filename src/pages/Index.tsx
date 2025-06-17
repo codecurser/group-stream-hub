@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from '@supabase/supabase-js';
 import { useToast } from "@/hooks/use-toast";
 import { useRef } from 'react';
+import GDPRModal from "@/components/GDPRModal";
 
 // Carousel brand logos (public SVG URLs)
 const heroImages = [
@@ -63,6 +64,12 @@ const Index = () => {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [isAutoSliding, setIsAutoSliding] = useState(true);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showFeaturesModal, setShowFeaturesModal] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showCookieModal, setShowCookieModal] = useState(false);
+  const [showGDPRModal, setShowGDPRModal] = useState(false);
 
   const testimonials = [
     {
@@ -422,9 +429,15 @@ const Index = () => {
           </div>
           <div className="flex items-center space-x-4">
             <a href="#how-it-works" className="text-gray-700 font-medium px-3 py-2 rounded transition-colors hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400" onClick={(e) => { e.preventDefault(); scrollToHowItWorks(); }}>How it Works</a>
-            <Button variant="ghost" onClick={() => setShowAboutModal(true)} className="text-gray-700 hover:text-blue-600">About Us</Button>
-            <Button variant="ghost" onClick={() => setShowAuthModal(true)} aria-label="Sign In">Sign In</Button>
-            <Button onClick={() => setShowAuthModal(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-400" aria-label="Get Started">Get Started</Button>
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" onClick={() => setShowAboutModal(true)} className="text-gray-700 hover:text-blue-600">About Us</Button>
+              <Button variant="ghost" onClick={() => setShowFeaturesModal(true)} className="text-gray-700 hover:text-blue-600">Features</Button>
+              {user ? (
+                <Button variant="ghost" onClick={() => setShowAuthModal(true)} aria-label="Sign In">Sign In</Button>
+              ) : (
+                <Button onClick={() => setShowAuthModal(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-400" aria-label="Get Started">Get Started</Button>
+              )}
+            </div>
           </div>
         </div>
       </nav>
@@ -908,15 +921,15 @@ const Index = () => {
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
+                  <a href="#" onClick={(e) => { e.preventDefault(); setShowPricingModal(true); }} className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    Features
+                    Pricing
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
+                  <a href="#" onClick={(e) => { e.preventDefault(); setShowFeaturesModal(true); }} className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    Pricing
+                    Features
                   </a>
                 </li>
               </ul>
@@ -926,27 +939,27 @@ const Index = () => {
             <div>
               <ul className="space-y-3">
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
+                  <a href="#" onClick={(e) => { e.preventDefault(); setShowPrivacyModal(true); }} className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
                     Privacy Policy
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
+                  <a href="/gdpr" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    GDPR
+                  </a>
+                </li>
+                <li>
+                  <a href="#" onClick={(e) => { e.preventDefault(); setShowTermsModal(true); }} className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
                     Terms of Service
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
+                  <a href="#" onClick={(e) => { e.preventDefault(); setShowCookieModal(true); }} className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
                     Cookie Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    GDPR
                   </a>
                 </li>
               </ul>
@@ -960,15 +973,16 @@ const Index = () => {
                     <svg className="w-4 h-4 text-blue-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
-                    <span className="group-hover:translate-x-1 transition-transform">aryansharma35x@gmail.com</span>
+                    aryansharma35x@gmail.com
                   </a>
                 </li>
-                <li className="text-gray-600 text-sm flex items-center gap-2 group">
-                  <svg className="w-4 h-4 text-blue-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <span className="group-hover:translate-x-1 transition-transform">Sharda University, Greater Noida</span>
+                <li>
+                  <a href="tel:+919876543210" className="text-gray-600 hover:text-blue-600 transition-colors text-sm flex items-center gap-2 group">
+                    <svg className="w-4 h-4 text-blue-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                    +91 98765 43210
+                  </a>
                 </li>
               </ul>
             </div>
@@ -1131,6 +1145,890 @@ const Index = () => {
           </div>
         </div>
       )}
+      {/* Terms Modal */}
+      {showTermsModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-8">
+              <div className="flex justify-between items-start mb-6">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Terms and Conditions</h2>
+                <Button variant="ghost" onClick={() => setShowTermsModal(false)} className="text-gray-500 hover:text-gray-700">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </Button>
+              </div>
+              <div className="prose prose-lg max-w-none">
+                <p className="text-gray-600 mb-8">Last updated: 12/06/2025</p>
+                
+                <p className="mb-6">
+                  Welcome to Playform Technologies Pvt. Ltd. ("Playform", "we", "us", or "our"). These Terms and Conditions ("Terms") constitute a binding legal agreement between you ("you", "user", or "member") and Playform regarding your use of our services, mobile applications, websites, software platforms, and any associated content or functionality (collectively, the "Platform").
+                </p>
+                <p className="mb-6">
+                  By registering, accessing, or using the Platform, you agree to comply with and be legally bound by these Terms, whether or not you become a registered user of the Platform.
+                </p>
+
+                <h2 className="text-2xl font-semibold mt-8 mb-4">1. Platform Overview</h2>
+                <p>Playform is a digital platform that facilitates:</p>
+                <ul className="list-disc pl-6 mb-6">
+                  <li>Time-bound digital access to premium third-party software and entertainment services.</li>
+                  <li>Collaborative consumption via verified group purchases.</li>
+                  <li>Secure account sharing, hosting, and management through smart session and access control.</li>
+                </ul>
+                <p>We do not own, resell, or redistribute third-party services. We act solely as a technology facilitator between verified hosts and users.</p>
+
+                <h2 className="text-2xl font-semibold mt-8 mb-4">2. Eligibility & Account Registration</h2>
+                <ul className="list-disc pl-6 mb-6">
+                  <li>You must be at least 18 years old to create an account.</li>
+                  <li>You are responsible for maintaining the confidentiality of your credentials.</li>
+                  <li>Playform reserves the right to verify your identity before providing access to specific services.</li>
+                </ul>
+
+                <h2 className="text-2xl font-semibold mt-8 mb-4">3. Use of the Platform</h2>
+                <h3 className="text-xl font-semibold mt-4 mb-2">Permitted Use:</h3>
+                <ul className="list-disc pl-6 mb-4">
+                  <li>Access and utilize premium tools or services made available by verified hosts on a per-hour or per-day rental basis.</li>
+                  <li>Create or join shared groups for collaborative subscription ownership.</li>
+                </ul>
+                <h3 className="text-xl font-semibold mt-4 mb-2">Prohibited Use:</h3>
+                <ul className="list-disc pl-6 mb-6">
+                  <li>Tampering with account settings (e.g., password, email, linked devices).</li>
+                  <li>Hosting unauthorized or pirated accounts.</li>
+                  <li>Engaging in bot-driven activity, fraud, or bypassing Playform's billing system.</li>
+                  <li>Violating the terms of service of any third-party platform.</li>
+                </ul>
+                <p>Violation of this section may result in immediate termination and potential legal action.</p>
+
+                <h2 className="text-2xl font-semibold mt-8 mb-4">4. Payments, Billing & Refunds</h2>
+                <ul className="list-disc pl-6 mb-6">
+                  <li>All transactions are processed through our secure payment partners.</li>
+                  <li>Billing is determined based on actual usage or group plan participation.</li>
+                  <li>No refund will be issued for completed or active sessions.</li>
+                  <li>Users may request a refund only in the case of technical failure, verified service inaccessibility, or accidental overbilling, subject to Playform's sole discretion.</li>
+                </ul>
+
+                <h2 className="text-2xl font-semibold mt-8 mb-4">5. Group Subscriptions</h2>
+                <ul className="list-disc pl-6 mb-6">
+                  <li>Playform enables users to create or join subscription-sharing groups.</li>
+                  <li>Group admins ("hosts") are responsible for the setup and ongoing access of the service.</li>
+                  <li>Auto-splitting of fees and roles is handled by the Playform system.</li>
+                  <li>Playform is not liable for disputes arising between group members.</li>
+                </ul>
+
+                <h2 className="text-2xl font-semibold mt-8 mb-4">6. Account Hosting Responsibilities</h2>
+                <p>If you list a digital service for shared access:</p>
+                <ul className="list-disc pl-6 mb-6">
+                  <li>You represent that you are the lawful owner or authorized user of the account.</li>
+                  <li>You agree to maintain uninterrupted access during the user's rental window.</li>
+                  <li>You will not share Playform-provided session links externally.</li>
+                  <li>You are solely responsible for ensuring compliance with the third-party service's usage policy.</li>
+                </ul>
+
+                <h2 className="text-2xl font-semibold mt-8 mb-4">7. Security and Trust</h2>
+                <ul className="list-disc pl-6 mb-6">
+                  <li>All sessions are sandboxed with access time limits and monitoring.</li>
+                  <li>Our platform uses industry-grade encryption, anonymized credentials, and scheduled logout systems.</li>
+                  <li>Any suspicious activity is automatically flagged and may lead to account suspension.</li>
+                </ul>
+
+                <h2 className="text-2xl font-semibold mt-8 mb-4">8. Intellectual Property</h2>
+                <ul className="list-disc pl-6 mb-6">
+                  <li>All software, branding, content, and source code used by Playform is owned by Playform or its licensors.</li>
+                  <li>Users may not replicate, clone, or reverse engineer any part of the platform.</li>
+                </ul>
+
+                <h2 className="text-2xl font-semibold mt-8 mb-4">9. Data Privacy</h2>
+                <p className="mb-6">Your personal data is protected under applicable privacy laws and governed by our Privacy Policy. Playform does not sell or rent your personal data to third parties.</p>
+
+                <h2 className="text-2xl font-semibold mt-8 mb-4">10. Limitation of Liability</h2>
+                <p>To the maximum extent permitted by law:</p>
+                <ul className="list-disc pl-6 mb-6">
+                  <li>Playform is not responsible for losses arising from use or misuse of the Platform.</li>
+                  <li>We do not guarantee uninterrupted access to third-party services, nor are we liable for third-party policy changes.</li>
+                  <li>Your use of shared accounts is at your own risk.</li>
+                </ul>
+
+                <h2 className="text-2xl font-semibold mt-8 mb-4">11. Termination & Suspension</h2>
+                <p>Playform reserves the right to:</p>
+                <ul className="list-disc pl-6 mb-6">
+                  <li>Suspend or terminate any user account that violates these Terms.</li>
+                  <li>Withhold access or disable listings due to policy breaches, fraudulent activity, or third-party complaints.</li>
+                </ul>
+
+                <h2 className="text-2xl font-semibold mt-8 mb-4">12. Modifications</h2>
+                <p className="mb-6">We may update these Terms at any time. Material changes will be communicated via email or push notification. Continued use of the Platform after such updates constitutes acceptance.</p>
+
+                <h2 className="text-2xl font-semibold mt-8 mb-4">13. Governing Law</h2>
+                <p className="mb-6">These Terms shall be governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts in Delhi NCR.</p>
+
+                <h2 className="text-2xl font-semibold mt-8 mb-4">14. Contact Us</h2>
+                <p>For support, legal inquiries, or partnership opportunities:</p>
+                <ul className="list-none pl-6 mb-6">
+                  <li>📧 legal@playform.tech</li>
+                  <li>🌐 www.playform.tech</li>
+                </ul>
+
+                <p className="mt-8 font-semibold">🔒 By using Playform, you confirm that you have read, understood, and agreed to these Terms.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Features Modal */}
+      {showFeaturesModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-8">
+              <div className="flex justify-between items-start mb-6">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Features – What Makes Playform Unique</h2>
+                <Button variant="ghost" onClick={() => setShowFeaturesModal(false)} className="text-gray-500 hover:text-gray-700">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </Button>
+              </div>
+
+              <div className="prose prose-lg max-w-none">
+                <p className="text-gray-600 mb-8">
+                  Playform is not just another platform. It's a powerful, real-time, secure sharing system designed for the digital age — where users can access premium tools, apps, and subscriptions affordably, and even earn from the assets they already own.
+                </p>
+
+                <div className="space-y-8">
+                  {/* Pay-Per-Use Access */}
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">Pay-Per-Use Access</h3>
+                    <ul className="list-none space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">💸</span>
+                        <span>Hourly or Daily Pricing</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">⏱️</span>
+                        <span>Access high-value software or subscriptions without monthly commitments.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">💼</span>
+                        <span>Ideal for freelancers, students, and part-time users.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Group Buy & Shared Subscriptions */}
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">Group Buy & Shared Subscriptions</h3>
+                    <ul className="list-none space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">🤝</span>
+                        <span>Join or create verified user groups to co-own premium plans.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">💳</span>
+                        <span>Auto-split billing, manage renewals, and avoid overpaying.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">🧠</span>
+                        <span>Smart sharing algorithms ensure fair and secure access for all members.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Instant Access Delivery */}
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">Instant Access Delivery</h3>
+                    <ul className="list-none space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">🚀</span>
+                        <span>Get real-time credentials or sessions seconds after payment.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">🔐</span>
+                        <span>Encrypted delivery system ensures 100% security and anonymity.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">📦</span>
+                        <span>Track access duration, renewal dates, and usage time from your dashboard.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* One Dashboard. Total Control. */}
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">One Dashboard. Total Control.</h3>
+                    <ul className="list-none space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">📊</span>
+                        <span>View your active subscriptions, group status, and shared earnings.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">🧾</span>
+                        <span>Download invoices and track payment history.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">🔔</span>
+                        <span>Real-time notifications for usage limits, renewals, and group invites.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Bank-Grade Security */}
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">Bank-Grade Security</h3>
+                    <ul className="list-none space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">🛡️</span>
+                        <span>256-bit encryption across sessions and credentials.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">🔁</span>
+                        <span>Auto-timeout and auto-logout features to protect all shared IDs.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">🚨</span>
+                        <span>Fraud detection, misuse alerts, and identity-verification system.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Become a Host */}
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">Become a Host</h3>
+                    <ul className="list-none space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">💰</span>
+                        <span>Share your unused accounts with verified users.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">📈</span>
+                        <span>Set your price, duration, and control access.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">🔄</span>
+                        <span>Fully automated sharing and payment management.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Multi-Platform Support */}
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">Multi-Platform Support</h3>
+                    <ul className="list-none space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">📱</span>
+                        <span>Available on Web, Android, and iOS</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">🖥️</span>
+                        <span>Optimized for Desktop and Mobile interfaces</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">🧩</span>
+                        <span>Browser plugins & app integration (Coming soon)</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Smart Support */}
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">Smart Support</h3>
+                    <ul className="list-none space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">🤖</span>
+                        <span>24/7 AI-Powered Helpdesk + Live Agent Support</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">📝</span>
+                        <span>Guided onboarding for new users</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-2xl">🔄</span>
+                        <span>Automated support for common issues</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Pricing Modal */}
+      {showPricingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">💰 Pricing – Simple, Transparent, Flexible</h2>
+                <button
+                  onClick={() => setShowPricingModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <p className="text-gray-600 mb-8">
+                Pay only for what you need. Whether you're a student using tools for a few hours or a team looking to co-own premium software, Playform offers pricing that adapts to your needs.
+              </p>
+
+              <div className="space-y-8">
+                {/* Pay-Per-Use Plans */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">Pay-Per-Use Plans</h3>
+                  <div className="grid md:grid-cols-3 gap-6">
+                    <div className="bg-gray-50 p-6 rounded-lg">
+                      <h4 className="font-semibold mb-2">Hourly</h4>
+                      <p className="text-sm text-gray-600 mb-2">Short tasks, quick access</p>
+                      <p className="text-2xl font-bold text-blue-600 mb-4">₹19/hr</p>
+                      <ul className="text-sm text-gray-600 space-y-2">
+                        <li>• Instant login</li>
+                        <li>• Secure session</li>
+                        <li>• Flexible exit</li>
+                      </ul>
+                    </div>
+                    <div className="bg-gray-50 p-6 rounded-lg">
+                      <h4 className="font-semibold mb-2">Daily</h4>
+                      <p className="text-sm text-gray-600 mb-2">One-time projects or binge days</p>
+                      <p className="text-2xl font-bold text-blue-600 mb-4">₹49/day</p>
+                      <ul className="text-sm text-gray-600 space-y-2">
+                        <li>• 24-hour full access</li>
+                        <li>• No auto-renewals</li>
+                      </ul>
+                    </div>
+                    <div className="bg-gray-50 p-6 rounded-lg">
+                      <h4 className="font-semibold mb-2">Weekly</h4>
+                      <p className="text-sm text-gray-600 mb-2">Extended access on budget</p>
+                      <p className="text-2xl font-bold text-blue-600 mb-4">₹199/week</p>
+                      <ul className="text-sm text-gray-600 space-y-2">
+                        <li>• 7-day validity</li>
+                        <li>• Priority slots</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Group Sharing Plans */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">Group Sharing Plans (Split Cost)</h3>
+                  <div className="grid md:grid-cols-3 gap-6">
+                    <div className="bg-gray-50 p-6 rounded-lg">
+                      <h4 className="font-semibold mb-2">Join Group</h4>
+                      <p className="text-sm text-gray-600 mb-2">Join existing verified groups</p>
+                      <p className="text-2xl font-bold text-blue-600 mb-4">As low as ₹59/mo</p>
+                    </div>
+                    <div className="bg-gray-50 p-6 rounded-lg">
+                      <h4 className="font-semibold mb-2">Create Group</h4>
+                      <p className="text-sm text-gray-600 mb-2">Start your own shareable plan with friends</p>
+                      <p className="text-2xl font-bold text-blue-600 mb-4">Custom — you set the share</p>
+                    </div>
+                    <div className="bg-gray-50 p-6 rounded-lg">
+                      <h4 className="font-semibold mb-2">Auto-Match</h4>
+                      <p className="text-sm text-gray-600 mb-2">We match you with others based on preferences</p>
+                      <p className="text-2xl font-bold text-blue-600 mb-4">From ₹79/mo</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid grid-cols-3 gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <span>🔁</span> Auto-renew & notify
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>🔐</span> Fully managed by Playform
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>📤</span> Cancel or leave group anytime
+                    </div>
+                  </div>
+                </div>
+
+                {/* Premium Services Marketplace */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">Premium Services Marketplace</h3>
+                  <p className="text-sm text-gray-600 mb-4">Access top-tier subscriptions on-demand:</p>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                      <span>🎨</span> Canva Pro <span className="text-blue-600">from ₹15/hour</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>📺</span> Netflix Premium <span className="text-blue-600">from ₹25/hour</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>💬</span> ChatGPT Plus <span className="text-blue-600">from ₹20/hour</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>🧠</span> Grammarly, Adobe CC, VS Code Plugins <span className="text-blue-600">from ₹10/hour</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2">💡 Prices may vary by region and availability. Bulk discounts available.</p>
+                </div>
+
+                {/* Hosting & Earnings */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">Hosting & Earnings (For Providers)</h3>
+                  <p className="text-sm text-gray-600 mb-4">Want to earn from your unused accounts?</p>
+                  <div className="grid md:grid-cols-3 gap-6">
+                    <div className="bg-gray-50 p-6 rounded-lg">
+                      <h4 className="font-semibold mb-2">Basic Host</h4>
+                      <p className="text-2xl font-bold text-blue-600 mb-4">75% Host / 25% Platform</p>
+                      <p className="text-sm text-gray-600">Share verified IDs, get paid instantly</p>
+                    </div>
+                    <div className="bg-gray-50 p-6 rounded-lg">
+                      <h4 className="font-semibold mb-2">Verified Host</h4>
+                      <p className="text-2xl font-bold text-blue-600 mb-4">85% Host / 15% Platform</p>
+                      <p className="text-sm text-gray-600">KYC badge, featured listing, fast payouts</p>
+                    </div>
+                    <div className="bg-gray-50 p-6 rounded-lg">
+                      <h4 className="font-semibold mb-2">Enterprise Host</h4>
+                      <p className="text-2xl font-bold text-blue-600 mb-4">Custom</p>
+                      <p className="text-sm text-gray-600">API access, dedicated support, brand control</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Teams & Institutions */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">Teams & Institutions (Coming Soon)</h3>
+                  <p className="text-sm text-gray-600 mb-4">Special packages for:</p>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="flex items-center gap-2">
+                      <span>🏫</span> Schools / Colleges
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>🧑‍💼</span> Remote Teams & Startups
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>👪</span> Families
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">📦 Includes team billing, user seats, centralized dashboard, shared vault.</p>
+                </div>
+
+                {/* What's Always Included */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">What's Always Included</h3>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="flex items-center gap-2">
+                      <span>✓</span> Secure access
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>✓</span> Real-time session management
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>✓</span> Transparent billing
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>✓</span> Smart usage reminders
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>✓</span> 24/7 support
+                    </div>
+                  </div>
+                </div>
+
+                {/* Trial & Offers */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">Trial & Offers</h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                      <span>🎁</span> First Hour Free on Selected Services
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>🎉</span> ₹100 Credit on Signup
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>👥</span> Refer & Earn up to ₹500 per user
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>💡</span> 20% Off on First Group Purchase
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-4">🎯 No hidden fees. Cancel anytime. You're always in control.</p>
+                </div>
+
+                <div className="text-center text-gray-600">
+                  <p>Need help choosing a plan? Contact us: support@playform.tech</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Privacy Policy Modal */}
+      {showPrivacyModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Privacy Policy – Playform Technologies Pvt. Ltd.</h2>
+                <button
+                  onClick={() => setShowPrivacyModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="text-sm text-gray-600 mb-6">
+                <p>Effective Date: 12/06/2025</p>
+                <p>Last Updated: 12/06/2025</p>
+              </div>
+              <p className="text-gray-600 mb-8">
+                Welcome to Playform ("Company", "we", "our", or "us"). Your privacy is of utmost importance to us. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website, mobile application, or use any of our services (collectively, the "Platform").
+              </p>
+
+              <div className="space-y-8">
+                {/* 1. Information We Collect */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">1. Information We Collect</h3>
+                  <p className="text-gray-600 mb-4">We collect the following categories of personal and usage data:</p>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">a. Personal Identifiable Information (PII)</h4>
+                      <ul className="list-disc pl-6 text-gray-600 space-y-1">
+                        <li>Full name</li>
+                        <li>Email address</li>
+                        <li>Mobile number</li>
+                        <li>Payment information (processed via third-party gateways)</li>
+                        <li>Government ID (only if needed for account verification)</li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold mb-2">b. Non-Personal Data</h4>
+                      <ul className="list-disc pl-6 text-gray-600 space-y-1">
+                        <li>IP address</li>
+                        <li>Browser and device type</li>
+                        <li>Operating system</li>
+                        <li>Access times and referring URLs</li>
+                        <li>Usage behavior and feature interactions</li>
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold mb-2">c. Optional Data</h4>
+                      <ul className="list-disc pl-6 text-gray-600 space-y-1">
+                        <li>Profile photo, social links, or preferences (if you choose to provide)</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. How We Use Your Information */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">2. How We Use Your Information</h3>
+                  <p className="text-gray-600 mb-4">We use your information to:</p>
+                  <ul className="list-disc pl-6 text-gray-600 space-y-1">
+                    <li>Provide and maintain our services</li>
+                    <li>Process transactions and facilitate payments</li>
+                    <li>Personalize your experience on the platform</li>
+                    <li>Facilitate account sharing and group access scheduling</li>
+                    <li>Detect fraud, abuse, and suspicious activity</li>
+                    <li>Communicate platform updates, promotions, and policy changes</li>
+                    <li>Fulfill legal obligations under applicable laws</li>
+                  </ul>
+                </div>
+
+                {/* 3. Data Sharing and Disclosure */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">3. Data Sharing and Disclosure</h3>
+                  <p className="text-gray-600 mb-4">We do not sell your personal information. We may share your data with:</p>
+                  <ul className="list-disc pl-6 text-gray-600 space-y-1">
+                    <li>Service providers (payment processors, SMS/email providers, analytics)</li>
+                    <li>Legal authorities, if required under law or to protect rights and safety</li>
+                    <li>Affiliates and partners, under strict confidentiality, for operational reasons</li>
+                  </ul>
+                  <p className="text-gray-600 mt-4">All third parties are contractually obligated to protect your data and comply with this policy.</p>
+                </div>
+
+                {/* 4. Cookies and Tracking Technologies */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">4. Cookies and Tracking Technologies</h3>
+                  <p className="text-gray-600 mb-4">We use cookies, pixels, and similar technologies to:</p>
+                  <ul className="list-disc pl-6 text-gray-600 space-y-1">
+                    <li>Maintain session state</li>
+                    <li>Analyze site usage patterns</li>
+                    <li>Deliver targeted advertisements (opt-out available)</li>
+                  </ul>
+                  <p className="text-gray-600 mt-4">You may disable cookies via your browser settings, but some features may not function correctly.</p>
+                </div>
+
+                {/* 5. Data Security */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">5. Data Security</h3>
+                  <p className="text-gray-600">We implement bank-grade encryption (AES-256), SSL/TLS protocols, and access control mechanisms to protect your data. However, no system is 100% secure, and we encourage strong password practices.</p>
+                </div>
+
+                {/* 6. User Rights */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">6. User Rights</h3>
+                  <p className="text-gray-600 mb-4">Depending on your jurisdiction, you may have the right to:</p>
+                  <ul className="list-disc pl-6 text-gray-600 space-y-1">
+                    <li>Access your personal data</li>
+                    <li>Rectify incorrect or outdated data</li>
+                    <li>Delete your data ("Right to be Forgotten")</li>
+                    <li>Withdraw consent for data processing</li>
+                    <li>Request data portability</li>
+                  </ul>
+                  <p className="text-gray-600 mt-4">To exercise any of these rights, contact us at: privacy@playform.tech</p>
+                </div>
+
+                {/* 7. Data Retention */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">7. Data Retention</h3>
+                  <p className="text-gray-600 mb-4">We retain your data:</p>
+                  <ul className="list-disc pl-6 text-gray-600 space-y-1">
+                    <li>As long as your account is active</li>
+                    <li>As needed to fulfill the purposes outlined in this policy</li>
+                    <li>For a limited period after account deletion (for audit and fraud control)</li>
+                  </ul>
+                </div>
+
+                {/* 8. Children's Privacy */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">8. Children's Privacy</h3>
+                  <p className="text-gray-600">Playform is not intended for users under the age of 18. We do not knowingly collect data from minors. If we learn that we have, we will delete such data immediately.</p>
+                </div>
+
+                {/* 9. Cross-Border Data Transfers */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">9. Cross-Border Data Transfers</h3>
+                  <p className="text-gray-600">By using our platform, you acknowledge that your data may be processed and stored in countries outside your own. We ensure such transfers meet applicable data protection standards.</p>
+                </div>
+
+                {/* 10. Third-Party Services */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">10. Third-Party Services</h3>
+                  <p className="text-gray-600">Our platform may include links or integrations with third-party tools (e.g., Google, Razorpay, Firebase). We are not responsible for the privacy practices of these external platforms. Please review their policies independently.</p>
+                </div>
+
+                {/* 11. Policy Updates */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">11. Policy Updates</h3>
+                  <p className="text-gray-600">We may revise this Privacy Policy periodically. You will be notified of significant changes via email or in-app alerts. Continued use of the platform after changes implies acceptance.</p>
+                </div>
+
+                {/* 12. Contact Us */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">12. Contact Us</h3>
+                  <p className="text-gray-600 mb-2">For data-related inquiries or complaints:</p>
+                  <ul className="list-disc pl-6 text-gray-600 space-y-1">
+                    <li>📧 privacy@playform.tech</li>
+                    <li>📍 Playform Technologies Pvt. Ltd.</li>
+                  </ul>
+                </div>
+
+                <div className="text-center text-gray-600 mt-8">
+                  <p>By using Playform, you consent to the practices outlined in this Privacy Policy.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Cookie Policy Modal */}
+      {showCookieModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Cookie Policy – Playform Technologies Pvt. Ltd.</h2>
+                <button
+                  onClick={() => setShowCookieModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="text-sm text-gray-600 mb-6">
+                <p>Effective Date: 12/06/2025</p>
+                <p>Last Updated: 12/06/2025</p>
+              </div>
+              <p className="text-gray-600 mb-8">
+                This Cookie Policy explains how Playform Technologies Pvt. Ltd. ("Playform", "we", "us", or "our") uses cookies and similar tracking technologies when you visit or interact with our website, mobile app, or services ("Platform").
+              </p>
+              <p className="text-gray-600 mb-8">
+                By continuing to use our Platform, you consent to the use of cookies as outlined in this policy, unless you disable them in your browser or settings.
+              </p>
+
+              <div className="space-y-8">
+                {/* 1. What Are Cookies? */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">1. What Are Cookies?</h3>
+                  <p className="text-gray-600 mb-4">Cookies are small text files stored on your device (computer, smartphone, tablet) when you access or interact with a website or application. They help remember your preferences, login sessions, and provide a smoother user experience.</p>
+                  <p className="text-gray-600 mb-4">We also use similar technologies like:</p>
+                  <ul className="list-disc pl-6 text-gray-600 space-y-1">
+                    <li>Web beacons / pixels</li>
+                    <li>HTML5 local storage</li>
+                    <li>SDK tracking (in-app analytics)</li>
+                  </ul>
+                </div>
+
+                {/* 2. Why We Use Cookies */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">2. Why We Use Cookies</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <span className="text-green-500 text-xl">✅</span>
+                      <div>
+                        <h4 className="font-semibold mb-2">Ensure Platform Functionality</h4>
+                        <p className="text-gray-600">Allow core features like login sessions, account switching, group joining, and real-time sharing to work correctly.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="text-green-500 text-xl">✅</span>
+                      <div>
+                        <h4 className="font-semibold mb-2">Personalize User Experience</h4>
+                        <p className="text-gray-600">Remember user preferences, preferred language, and selected themes.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="text-green-500 text-xl">✅</span>
+                      <div>
+                        <h4 className="font-semibold mb-2">Analytics & Performance</h4>
+                        <p className="text-gray-600">Track how users interact with the platform to improve design, navigation, and user satisfaction (e.g., Google Analytics, Firebase).</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="text-green-500 text-xl">✅</span>
+                      <div>
+                        <h4 className="font-semibold mb-2">Marketing & Retargeting</h4>
+                        <p className="text-gray-600">Show you relevant ads across the internet based on your usage behavior (e.g., Meta Pixel, Google Ads).</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="text-green-500 text-xl">✅</span>
+                      <div>
+                        <h4 className="font-semibold mb-2">Security</h4>
+                        <p className="text-gray-600">Detect and prevent fraudulent activity, unusual logins, or abuse.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Types of Cookies We Use */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">3. Types of Cookies We Use</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="px-4 py-2 text-left text-sm font-semibold text-gray-600 border">Type</th>
+                          <th className="px-4 py-2 text-left text-sm font-semibold text-gray-600 border">Purpose</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td className="px-4 py-2 text-sm text-gray-600 border">Strictly Necessary</td>
+                          <td className="px-4 py-2 text-sm text-gray-600 border">Essential for core features like login and transactions. Cannot be disabled.</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-2 text-sm text-gray-600 border">Functional</td>
+                          <td className="px-4 py-2 text-sm text-gray-600 border">Remembers choices you make (like language or session timeout).</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-2 text-sm text-gray-600 border">Performance</td>
+                          <td className="px-4 py-2 text-sm text-gray-600 border">Helps us improve performance and UX by tracking user interaction.</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-2 text-sm text-gray-600 border">Targeting / Advertising</td>
+                          <td className="px-4 py-2 text-sm text-gray-600 border">Delivers personalized ads based on your interests and platform use.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 4. Third-Party Cookies */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">4. Third-Party Cookies</h3>
+                  <p className="text-gray-600 mb-4">Some cookies are set by third-party services that we integrate with. These may include:</p>
+                  <ul className="list-disc pl-6 text-gray-600 space-y-1">
+                    <li>Google Analytics</li>
+                    <li>Google Ads</li>
+                    <li>Meta (Facebook) Pixel</li>
+                    <li>Hotjar / Mixpanel</li>
+                    <li>Razorpay / Stripe SDKs</li>
+                  </ul>
+                  <p className="text-gray-600 mt-4">We do not control these cookies directly. Please refer to their respective privacy and cookie policies.</p>
+                </div>
+
+                {/* 5. Managing Your Cookie Preferences */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">5. Managing Your Cookie Preferences</h3>
+                  <p className="text-gray-600 mb-4">You have full control over cookie usage.</p>
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl">🔧</span>
+                      <div>
+                        <h4 className="font-semibold mb-2">Browser Settings</h4>
+                        <p className="text-gray-600">Most browsers let you manage or disable cookies via settings. However, disabling essential cookies may limit functionality.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl">🌐</span>
+                      <div>
+                        <h4 className="font-semibold mb-2">Do Not Track (DNT)</h4>
+                        <p className="text-gray-600">Our platform honors DNT signals where supported.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl">⚙️</span>
+                      <div>
+                        <h4 className="font-semibold mb-2">In-App Preferences</h4>
+                        <p className="text-gray-600">On mobile apps, you can manage tracking permissions under app settings.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl">📣</span>
+                      <div>
+                        <h4 className="font-semibold mb-2">Cookie Consent Banner</h4>
+                        <p className="text-gray-600">When you first visit Playform, a consent popup will appear allowing you to accept or manage cookies. You can change your preferences anytime.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 6. Data Retention */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">6. Data Retention</h3>
+                  <p className="text-gray-600 mb-4">Cookies may remain stored on your browser for:</p>
+                  <ul className="list-disc pl-6 text-gray-600 space-y-1">
+                    <li>A single session (session cookies)</li>
+                    <li>Up to 12 months (persistent cookies), unless manually deleted</li>
+                  </ul>
+                  <p className="text-gray-600 mt-4">Analytics cookies expire within a 90–365 day period depending on service provider settings.</p>
+                </div>
+
+                {/* 7. Updates to This Policy */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">7. Updates to This Policy</h3>
+                  <p className="text-gray-600">We may update this Cookie Policy to reflect legal, technical, or operational changes. Material updates will be notified via banner or in-app alert.</p>
+                </div>
+
+                {/* 8. Contact Us */}
+                <div>
+                  <h3 className="text-xl font-semibold mb-4">8. Contact Us</h3>
+                  <p className="text-gray-600 mb-2">For questions or concerns about cookies or privacy practices:</p>
+                  <ul className="list-disc pl-6 text-gray-600 space-y-1">
+                    <li>📧 privacy@playform.tech</li>
+                    <li>🌍 www.playform.tech</li>
+                    <li>📍 Playform Technologies Pvt. Ltd.</li>
+                  </ul>
+                </div>
+
+                <div className="text-center text-gray-600 mt-8">
+                  <p>✅ By using our platform, you consent to our use of cookies and tracking technologies in accordance with this Cookie Policy.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* GDPR Modal */}
+      <GDPRModal isOpen={showGDPRModal} onClose={() => setShowGDPRModal(false)} />
     </div>
   );
 };
