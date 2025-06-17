@@ -27,9 +27,6 @@ interface MarketplaceListing {
   created_at: string;
   seller_id: string;
   account_details: string | null;
-  profiles?: {
-    full_name: string | null;
-  } | null;
 }
 
 const MarketplaceTab = ({ user }: MarketplaceTabProps) => {
@@ -39,25 +36,19 @@ const MarketplaceTab = ({ user }: MarketplaceTabProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch all active listings
+  // Fetch all active listings without profiles join
   const { data: listings = [], isLoading } = useQuery({
     queryKey: ['marketplace-listings'],
     queryFn: async (): Promise<MarketplaceListing[]> => {
       const { data, error } = await supabase
         .from('marketplace_listings')
-        .select(`
-          *,
-          profiles (full_name)
-        `)
+        .select('*')
         .eq('status', 'active')
         .gt('expire_at', new Date().toISOString())
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return (data || []).map(item => ({
-        ...item,
-        profiles: item.profiles && !Array.isArray(item.profiles) ? item.profiles : null
-      })) as MarketplaceListing[];
+      return data || [];
     }
   });
 
@@ -234,7 +225,7 @@ const MarketplaceTab = ({ user }: MarketplaceTabProps) => {
             disabled={purchaseMutation.isPending}
           >
             <ShoppingCart className="w-4 h-4 mr-2" />
-            {purchaseMutation.isPending ? 'Processing...' : 'Purchase Now'}
+            {purchaseMutation.isPending ? 'Processing...' : 'Contact Seller'}
           </Button>
         )}
 
