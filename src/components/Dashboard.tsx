@@ -7,7 +7,7 @@ import { Plus, Users, LogOut, Copy, DollarSign, Calendar, MessageCircle, Crown, 
 import CreateGroupModal from "@/components/CreateGroupModal";
 import JoinGroupModal from "@/components/JoinGroupModal";
 import GroupChatModal from "@/components/GroupChatModal";
-import MarketplaceTab from "@/components/marketplace/MarketplaceTab";
+import SimpleMarketplace from "@/components/marketplace/SimpleMarketplace";
 import { useToast } from "@/hooks/use-toast";
 import { User } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
@@ -594,7 +594,7 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
           </TabsContent>
           
           <TabsContent value="marketplace" className="mt-8">
-            <MarketplaceTab user={user} />
+            <SimpleMarketplace user={user} />
           </TabsContent>
           
           <TabsContent value="payments" className="mt-8">
